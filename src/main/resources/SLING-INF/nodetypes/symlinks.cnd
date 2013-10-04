@@ -23,14 +23,21 @@
 // Mixin node type to allow creating symlinks nodes
 [sling:Symlink]
     mixin
+
     // mandatory property pointing to an absolute or relative
     // repository path, which this symlink points to
   - sling:symlinkTarget (string) mandatory
 
+    // optional property indicating if the node itself is used
+    // as root for the symlink (default), of it it's parent should
+    // be used. The latter is useful in a Page/PageContent scenario
+    // where the mixin cannot be added on the parent node itself.  
+  - sling:symlinkRegisterParent (boolean)
+
     // optional property indicating whether this symlink allows
     // the symlinked content to be overlayed by real nodes
     // created below the symlink node  
-  - sling:overlayable (boolean)
+  - sling:symlinkOverlayable (boolean)
 
 
 //-----------------------------------------------------------------------------

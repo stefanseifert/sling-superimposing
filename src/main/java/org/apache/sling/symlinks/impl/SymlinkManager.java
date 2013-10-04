@@ -16,31 +16,38 @@
  */
 package org.apache.sling.symlinks.impl;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.sling.api.resource.LoginException;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.api.resource.ResourceUtil;
-import org.osgi.framework.BundleContext;
-import org.osgi.service.component.ComponentContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 import javax.jcr.query.Query;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ResourceUtil;
+import org.apache.sling.api.resource.ValueMap;
+import org.osgi.framework.BundleContext;
+import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * SymlinkManager ...
@@ -54,14 +61,14 @@ public class SymlinkManager implements EventListener {
     private static final Logger log = LoggerFactory.getLogger(SymlinkManager.class);
 
     /**
-     * XPath query for all nodes marked as symlink.
+     * Mixin for symlinks.
      */
-    private static final String SYMLINK_QUERY = "//element(*, sling:Symlink)";
+    private static final String MIXIN_SYMLINK = "sling:Symlink";
 
     /**
-     * The marker nodetype for symlinks.
+     * XPath query for all nodes marked as symlink.
      */
-    private static final String NT_SYMLINK = "sling:Symlink";
+    private static final String SYMLINK_QUERY = "//element(*, " + MIXIN_SYMLINK + ")";
 
     /**
      * Property pointing to an absolute or relative repository path, which
@@ -70,27 +77,36 @@ public class SymlinkManager implements EventListener {
     private static final String PROP_SYMLINK_TARGET = "sling:symlinkTarget";
 
     /**
+     * Property indicating if the node itself is used as root for the symlink (default),
+     * of it it's parent should be used. The latter is useful in a Page/PageContent scenario
+     * where the mixin cannot be added on the parent node itself.
+     */
+    private static final String PROP_SYMLINK_REGISTER_PARENT = "sling:symlinkRegisterParent";
+
+    /**
      * Property indicating whether this symlink allows the symlinked content
      * to be overlayed by real nodes created below the symlink node.
      * Default value is false.
      */
-    private static final String PROP_OVERLAYABLE = "sling:overlayable";
+    private static final String PROP_SYMLINK_OVERLAYABLE = "sling:symlinkOverlayable";
 
     /**
      * Map for holding the symlink mappings, with the symlink path as key and
      * the SymlinkResourceProvider
      */
-    private Map<String, SymlinkResourceProvider> symlinkProviders =
-            new HashMap<String, SymlinkResourceProvider>();
+    private ConcurrentMap<String, SymlinkResourceProvider> symlinkProviders =
+            new ConcurrentHashMap<String, SymlinkResourceProvider>();
 
     @Reference
-    @SuppressWarnings("unused")
     private ResourceResolverFactory resolverFactory;
+
+    @Reference
+    private SymlinkConfig symlinkConfig;
 
     /**
      * Administrative resource resolver (read only usage)
      */
-    ResourceResolver resolver;
+    private ResourceResolver resolver;
 
     /**
      * A reference to the initialization task. Needed to check if
@@ -109,21 +125,29 @@ public class SymlinkManager implements EventListener {
     }
 
     private void registerAllSymlinks() {
+        log.debug("Start registering all symlinks...");
         final long start = System.currentTimeMillis();
-        long count = 0;
+        long countSuccess = 0;
+        long countFailed = 0;
 
         final Iterator<Resource> symlinks = findSymlinks(resolver);
         while (symlinks.hasNext()) {
             final Resource symlink = symlinks.next();
             try {
-                count += registerSymlink(symlink.adaptTo(Node.class)) ? 1 : 0;
+                boolean success = registerSymlink(symlink);
+                if (success) {
+                    countSuccess++;
+                } else {
+                    countFailed++;
+                }
             } catch (RepositoryException e) {
                 log.error("Unexpected repository exception while registering symlink: ", e);
             }
         }
 
         final long time = System.currentTimeMillis() - start;
-        log.info("Registered {} SymlinkResourceProviders in {}ms", count, time);
+        log.info("Registered {} SymlinkResourceProvider(s) in {} ms, skipping {} invalid one(s).", new Object[] {
+                countSuccess, time, countFailed });
     }
 
     /**
@@ -131,36 +155,67 @@ public class SymlinkManager implements EventListener {
      * @return true if registration was done, false if skipped (already registered)
      * @throws RepositoryException
      */
-    private boolean registerSymlink(Node symlink) throws RepositoryException {
-        if (null != symlink && symlink.hasProperty(PROP_SYMLINK_TARGET)) {
-            final String target = symlink.getProperty(PROP_SYMLINK_TARGET).getString();
-            final boolean overlayable = symlink.hasProperty(PROP_OVERLAYABLE)
-                    && symlink.getProperty(PROP_OVERLAYABLE).getBoolean();
+    private boolean registerSymlink(Resource symlink) throws RepositoryException {
+        ValueMap props = ResourceUtil.getValueMap(symlink);
+        String symlinkPath = symlink.getPath();
+        final String targetPath = props.get(PROP_SYMLINK_TARGET, String.class);
+        final boolean registerParent = props.get(PROP_SYMLINK_REGISTER_PARENT, false);
+        final boolean overlayable = props.get(PROP_SYMLINK_OVERLAYABLE, false);
 
+        // check if symlink definition is valid
+        boolean valid = true;
+        if (StringUtils.isBlank(targetPath)) {
+            valid = false;
+        }
+        else {
+            // check whether the parent of the symlink node should be registered as symlink source
+            if (registerParent) {
+                symlinkPath = ResourceUtil.getParent(symlinkPath);
+            }
+            // target path is not valid if it equals to a parent or child of the symlink path, or to the symlink path itself
+            if (StringUtils.equals(targetPath, symlinkPath)
+                    || StringUtils.startsWith(targetPath, symlinkPath + "/")
+                    || StringUtils.startsWith(symlinkPath, targetPath + "/")) {
+                valid = false;
+            }
+        }
+
+        // register valid symlink
+        if (valid) {
             final SymlinkResourceProvider srp =
-                    new SymlinkResourceProvider(this, symlink.getPath(), target, overlayable);
-            final SymlinkResourceProvider oldSrp = symlinkProviders.put(symlink.getPath(), srp);
+                    new SymlinkResourceProvider(symlinkPath, targetPath, overlayable);
+            final SymlinkResourceProvider oldSrp = symlinkProviders.put(symlinkPath, srp);
 
             // unregister in case there was a provider registered before
             if (!srp.equals(oldSrp)) {
-                log.debug("(Re-)registering resource provider.");
+                log.debug("(Re-)registering resource provider {}.", symlinkPath);
                 if (null != oldSrp) {
                     oldSrp.unregisterService();
                 }
                 srp.registerService(bundleContext);
                 return true;
             } else {
-                log.debug("Skipped re-registering resource provider because there were no relevant changes.");
+                log.debug("Skipped re-registering resource provider {} because there were no relevant changes.", symlinkPath);
             }
         }
+
+        // otherwise remove previous symlink resource provider if new symlink definition is not valid
+        else {
+            final SymlinkResourceProvider oldSrp = symlinkProviders.remove(symlinkPath);
+            if (null != oldSrp) {
+                log.debug("Unregistering resource provider {}.", symlinkPath);
+                oldSrp.unregisterService();
+            }
+            log.warn("Symlink '{}' pointing to '{}' is invalid.", symlinkPath, targetPath);
+        }
+
         return false;
     }
 
     private void registerSymlink(String path) {
         try {
-            final Session session = resolver.adaptTo(Session.class);
-            if (session.itemExists(path)) {
-                final Node symlink = session.getRootNode().getNode(path.substring(1));
+            final Resource symlink = resolver.getResource(path);
+            if (symlink != null) {
                 registerSymlink(symlink);
             }
         } catch (RepositoryException e) {
@@ -177,33 +232,36 @@ public class SymlinkManager implements EventListener {
 
     // ---------- SCR Integration
 
-    @SuppressWarnings("unused")
+    @Activate
     protected synchronized void activate(final ComponentContext ctx) throws LoginException, RepositoryException {
-        if (null == resolver) {
-            bundleContext = ctx.getBundleContext();
-            resolver = resolverFactory.getAdministrativeResourceResolver(null);
+        if (isEnabled()) {
+            if (null == resolver) {
+                bundleContext = ctx.getBundleContext();
+                resolver = resolverFactory.getAdministrativeResourceResolver(null);
 
-            // Watch for events on the root - that might be one of our root folders
-            final Session session = resolver.adaptTo(Session.class);
-            session.getWorkspace().getObservationManager().addEventListener(
-                    this,
-                    Event.NODE_ADDED | Event.NODE_REMOVED | Event.PROPERTY_ADDED | Event.PROPERTY_CHANGED | Event.PROPERTY_REMOVED,
-                    "/",
-                    true,  // isDeep
-                    null,  // uuids
-                    null,  // node types
-                    true); // noLocal
+                // Watch for events on the root - that might be one of our root
+                // folders
+                final Session session = resolver.adaptTo(Session.class);
+                session.getWorkspace()
+                        .getObservationManager()
+                        .addEventListener(
+                                this,
+                                Event.NODE_ADDED | Event.NODE_REMOVED | Event.PROPERTY_ADDED | Event.PROPERTY_CHANGED
+                                        | Event.PROPERTY_REMOVED, "/", true, // isDeep
+                                null, // uuids
+                                null, // node types
+                                true); // noLocal
 
-            final SymlinkManager manager = this;
-            initialization = Executors.newSingleThreadExecutor().submit(new Runnable() {
-                public void run() {
-                    registerAllSymlinks();
-                }
-            });
+                initialization = Executors.newSingleThreadExecutor().submit(new Runnable() {
+                    public void run() {
+                        registerAllSymlinks();
+                    }
+                });
+            }
         }
     }
 
-    @SuppressWarnings("unused")
+    @Deactivate
     protected synchronized void deactivate(final ComponentContext ctx) throws RepositoryException {
         try {
             // make sure initialization has finished
@@ -232,43 +290,71 @@ public class SymlinkManager implements EventListener {
     // ---------- EventListener
 
     public void onEvent(EventIterator eventIterator) {
-        try {
-            // collect all actions to be performed for this event
-            final Map<String, Boolean> actions = new HashMap<String, Boolean>();
-            boolean nodeAdded = false;
-            boolean nodeRemoved = false;
-            while (eventIterator.hasNext()) {
-                final Event event = eventIterator.nextEvent();
-                final String path = event.getPath();
-                if (event.getType() == Event.NODE_ADDED) {
-                    nodeAdded = true;
-                } else if (event.getType() == Event.NODE_REMOVED && symlinkProviders.containsKey(path)) {
-                    nodeRemoved = true;
-                    actions.put(path, false);
-                } else if (path.endsWith(PROP_SYMLINK_TARGET) || path.endsWith(PROP_OVERLAYABLE)) {
-                    final String nodePath = ResourceUtil.getParent(path);
-                    actions.put(nodePath, true);
-                }
-            }
+        if (isEnabled()) {
+            try {
+                // collect all actions to be performed for this event
+                final Map<String, Boolean> actions = new HashMap<String, Boolean>();
+                boolean nodeAdded = false;
+                boolean nodeRemoved = false;
+                while (eventIterator.hasNext()) {
+                    final Event event = eventIterator.nextEvent();
+                    final String path = event.getPath();
+                    final String name = ResourceUtil.getName(path);
+                    if (event.getType() == Event.NODE_ADDED) {
+                        nodeAdded = true;
+                    } else if (event.getType() == Event.NODE_REMOVED && symlinkProviders.containsKey(path)) {
+                        nodeRemoved = true;
+                        actions.put(path, false);
+                    } else if (StringUtils.equals(name, PROP_SYMLINK_TARGET)
+                            || StringUtils.equals(name, PROP_SYMLINK_REGISTER_PARENT)
+                            || StringUtils.equals(name, PROP_SYMLINK_OVERLAYABLE)) {
+                        final String nodePath = ResourceUtil.getParent(path);
+                        actions.put(nodePath, true);
+                    }
 
-            // execute all collected actions (having this outside the above
-            // loop prevents repeated registrations within one transaction
-            // but allows for several symlinks to be added within a single
-            // transaction)
-            for (Map.Entry<String, Boolean> action : actions.entrySet()) {
-                if (action.getValue()) {
-                    registerSymlink(action.getKey());
-                } else {
-                    unregisterSymlink(action.getKey());
                 }
-            }
 
-            if (nodeAdded && nodeRemoved) {
-                // maybe a symlink was moved, re-register all symlinks (existing ones will be skipped)
-                registerAllSymlinks();
+                // execute all collected actions (having this outside the above
+                // loop prevents repeated registrations within one transaction
+                // but allows for several symlinks to be added within a single
+                // transaction)
+                for (Map.Entry<String, Boolean> action : actions.entrySet()) {
+                    if (action.getValue()) {
+                        registerSymlink(action.getKey());
+                    } else {
+                        unregisterSymlink(action.getKey());
+                    }
+                }
+
+                if (nodeAdded && nodeRemoved) {
+                    // maybe a symlink was moved, re-register all symlinks
+                    // (existing
+                    // ones will be skipped)
+                    registerAllSymlinks();
+                }
+            } catch (RepositoryException e) {
+                log.error("Unexpected repository exception during event processing.");
             }
-        } catch (RepositoryException e) {
-            log.error("Unexpected repository exception during event processing.");
         }
     }
+
+    /**
+     * @return true if symlink handling is enabled in configuration
+     */
+    public boolean isEnabled() {
+        if (symlinkConfig != null) {
+            return symlinkConfig.isEnabled();
+        } else {
+            log.info("No Symlink configuration found");
+            return false;
+        }
+    }
+
+    /**
+     * @return Immutable map wit hall symlink providers currently registered
+     */
+    public Map<String, SymlinkResourceProvider> getRegisteredSymlinkProviders() {
+        return Collections.unmodifiableMap(symlinkProviders);
+    }
+    
 }

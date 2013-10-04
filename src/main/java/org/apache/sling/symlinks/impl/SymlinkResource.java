@@ -30,6 +30,10 @@ public class SymlinkResource extends AbstractResource implements Resource {
     private final Resource resource;
     private final String path;
 
+    /**
+     * @param mappedResource Mapped resource
+     * @param path Path
+     */
     public SymlinkResource(Resource mappedResource, String path) {
         this.resource = mappedResource;
         this.path = path;

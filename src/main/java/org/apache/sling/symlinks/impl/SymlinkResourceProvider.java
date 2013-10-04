@@ -20,6 +20,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceProvider;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceWrapper;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -42,21 +43,25 @@ public class SymlinkResourceProvider implements ResourceProvider {
      */
     private static final Logger log = LoggerFactory.getLogger(SymlinkResourceProvider.class);
 
-    private final SymlinkManager symlinkManager;
     private final String rootPath;
     private final String rootPrefix;
     private final String targetPath;
     private final String targetPrefix;
     private final boolean overlayable;
+    private final String toString;
     private ServiceRegistration registration;
 
-    SymlinkResourceProvider(SymlinkManager symlinkManager, String rootPath, String targetPath, boolean overlayable) {
-        this.symlinkManager = symlinkManager;
+    SymlinkResourceProvider(String rootPath, String targetPath, boolean overlayable) {
         this.rootPath = rootPath;
         this.rootPrefix = rootPath.concat("/");
         this.targetPath = targetPath;
         this.targetPrefix = targetPath.concat("/");
         this.overlayable = overlayable;
+        StringBuilder sb = new StringBuilder(getClass().getSimpleName());
+        sb.append(" [path=").append(rootPath).append(", ");
+        sb.append("target=").append(targetPath).append(", ");
+        sb.append("overlayable=").append(overlayable).append("]");
+        this.toString = sb.toString();
     }
 
     /**
@@ -85,9 +90,20 @@ public class SymlinkResourceProvider implements ResourceProvider {
      * {@inheritDoc}
      */
     public Iterator<Resource> listChildren(Resource resource) {
-        // TODO: this should probably handle other Resource implementations as well?
-        if (resource instanceof SymlinkResource) {
-            final SymlinkResource res = (SymlinkResource) resource;
+        
+        // unwrap resource if it is a wrapped resource
+        final Resource currentResource;
+        if (resource instanceof ResourceWrapper) {
+            currentResource = ((ResourceWrapper)resource).getResource();
+        }
+        else {
+            currentResource = resource;
+        }
+        
+        // this supports mixing of JCR children and symlink children because the implementation
+        // of the JCR resource resolver queries other resource resolver mapped to the same path as well
+        if (currentResource instanceof SymlinkResource) {
+            final SymlinkResource res = (SymlinkResource) currentResource;
             final ResourceResolver resolver = res.getResource().getResourceResolver();
             final Iterator<Resource> children = resolver.listChildren(res.getResource());
             return new SymlinkResourceIterator(this, children);
@@ -97,42 +113,68 @@ public class SymlinkResourceProvider implements ResourceProvider {
 
     /**
      * Maps a path below the symlink to the target resource's path.
-     *
-     * @param symlink
-     * @param resolver
-     * @param path
-     * @return
+     * @param symlink Symlink resource provicer
+     * @param resolver Resourcer resolver
+     * @param path Path to map
+     * @return Mapped path or null if no mapping available
      */
     static String mapPath(SymlinkResourceProvider symlink, ResourceResolver resolver, String path) {
-        final Session session = resolver.adaptTo(Session.class);
-        try {
-            // TODO: how to handle the node defining the symlink:
-            //       * should it always be overlayed? (current implementation)
-            //       * should it never be overlayed?
-            //       * should it depend on the overlayable property? (may need adjustments in listChildren())
-            //       * should it be seperately configurable?
-            // always apply mapping for the symlink itself
-            //     or
-            // always apply mapping if the symlink is not overlayable
-            //     or
-            // if no item exists at "path" (no overlay exists)
-            if (path.equals(symlink.rootPath)
-                    || !symlink.overlayable
-                    || (null != session && !session.itemExists(path))) {
-                final String mappedPath;
-                if (path.equals(symlink.rootPath)) {
-                    mappedPath = symlink.targetPath;
-                } else if (path.startsWith(symlink.rootPrefix)) {
-                    mappedPath = StringUtils.replaceOnce(path, symlink.rootPrefix, symlink.targetPrefix);
-                } else {
-                    mappedPath = null;
+        if (symlink.overlayable) {
+            return mapPathWithOverlay(symlink, resolver, path);
+        }
+        else {
+            return mapPathWithoutOverlay(symlink, resolver, path);
+        }
+    }
+
+    /**
+     * Maps a path below the symlink to the target resource's path with check for overlaying.
+     * @param symlink Symlink resource provicer
+     * @param resolver Resourcer resolver
+     * @param path Path to map
+     * @return Mapped path or null if no mapping available
+     */
+    static String mapPathWithOverlay(SymlinkResourceProvider symlink, ResourceResolver resolver, String path) {
+        if (StringUtils.equals(path, symlink.rootPath)) {
+            // symlink node path cannot be overlayed
+            return mapPathWithoutOverlay(symlink, resolver, path);
+        }
+        else if (StringUtils.startsWith(path, symlink.rootPrefix)) {
+            final Session session = resolver.adaptTo(Session.class);
+            try {
+                boolean itemExistsInSymlinkPath = (null != session && session.itemExists(path));
+                if (itemExistsInSymlinkPath) {
+                    // item exists, allow JCR resource provider to step in
+                    return null;
                 }
-                return mappedPath;
+                else {
+                    // item does not exist, overlay cannot be applied, fallback to mapped path without overlay
+                    return mapPathWithoutOverlay(symlink, resolver, path);
+                }
+            } catch (RepositoryException e) {
+                log.error("Error accessing the repository. ", e);
             }
-        } catch (RepositoryException e) {
-            log.error("Error accessing the repository. ", e);
         }
         return null;
+    }
+
+    /**
+     * Maps a path below the symlink to the target resource's path without check for overlaying.
+     * @param symlink Symlink resource provicer
+     * @param resolver Resourcer resolver
+     * @param path Path to map
+     * @return Mapped path or null if no mapping available
+     */
+    static String mapPathWithoutOverlay(SymlinkResourceProvider symlink, ResourceResolver resolver, String path) {
+        final String mappedPath;
+        if (StringUtils.equals(path, symlink.rootPath)) {
+            mappedPath = symlink.targetPath;
+        } else if (StringUtils.startsWith(path, symlink.rootPrefix)) {
+            mappedPath = StringUtils.replaceOnce(path, symlink.rootPrefix, symlink.targetPrefix);
+        } else {
+            mappedPath = null;
+        }
+        return mappedPath;
     }
 
     /**
@@ -174,7 +216,29 @@ public class SymlinkResourceProvider implements ResourceProvider {
             log.info("Unregistered {}", this);
         }
     }
+    
+    /**
+     * @return Root path (source path)
+     */
+    public String getRootPath() {
+        return rootPath;
+    }
 
+    /**
+     * @return Target path (destination path)
+     */
+    public String getTargetPath() {
+        return targetPath;
+    }
+
+    /**
+     * @return Overlayable yes/no
+     */
+    public boolean isOverlayable() {
+        return overlayable;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (o instanceof SymlinkResourceProvider) {
             final SymlinkResourceProvider srp = (SymlinkResourceProvider) o;
@@ -184,11 +248,8 @@ public class SymlinkResourceProvider implements ResourceProvider {
         return false;
     }
 
+    @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder(getClass().getSimpleName());
-        sb.append(" [path=").append(rootPath).append(", ");
-        sb.append("target=").append(targetPath).append(", ");
-        sb.append("overlayable=").append(overlayable).append("]");
-        return sb.toString();
+        return toString;
     }
 }
