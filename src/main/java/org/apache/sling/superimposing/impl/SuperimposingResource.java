@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.sling.symlinks.impl;
+package org.apache.sling.superimposing.impl;
 
 import org.apache.sling.api.resource.AbstractResource;
 import org.apache.sling.api.resource.Resource;
@@ -26,7 +26,7 @@ import org.apache.sling.api.resource.ResourceResolver;
  * It delegates to an existing JCR resource but overrides the getPath()
  * method to point to the symlinked path.
  */
-public class SymlinkResource extends AbstractResource implements Resource {
+public class SuperimposingResource extends AbstractResource implements Resource {
     private final Resource resource;
     private final String path;
 
@@ -34,7 +34,7 @@ public class SymlinkResource extends AbstractResource implements Resource {
      * @param mappedResource Mapped resource
      * @param path Path
      */
-    public SymlinkResource(Resource mappedResource, String path) {
+    public SuperimposingResource(Resource mappedResource, String path) {
         this.resource = mappedResource;
         this.path = path;
     }

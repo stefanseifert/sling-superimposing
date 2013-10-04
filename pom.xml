@@ -24,23 +24,23 @@
         <relativePath>../../../parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>org.apache.sling.symlinks</artifactId>
+    <artifactId>org.apache.sling.superimposing</artifactId>
     <version>0.0.4-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
-    <name>Apache Sling Symlinks</name>
+    <name>Apache Sling Superimposing Resource Provider</name>
     <description>
-        Allows to create symlink nodes in the repository. The entire
-        sub-tree below the symlinked node gets exposed at the location
-        of the symlink node.
+        Allows to mirror resource trees and superimposing resources.
+        All cahnges from the master tree are reflected to the mirrored tree.
+        It is possible to add or overlay resources in the mirrord tree.
     </description>
 
 <!-- *** TODO: activate this again when commiting to apache *** -->
 <!--
     <scm>
-        <connection>scm:svn:http://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/symlinks</connection>
-        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/symlinks</developerConnection>
-        <url>http://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/symlinks</url>
+        <connection>scm:svn:http://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/superimposing</connection>
+        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/superimposing</developerConnection>
+        <url>http://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/superimposing</url>
     </scm>
 -->
 
@@ -60,28 +60,20 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Private-Package>org.apache.sling.symlinks.impl</Private-Package>
+                        <Export-Package>org.apache.sling.superimposing</Export-Package>
+                        <Private-Package>org.apache.sling.superimposing.impl</Private-Package>
                         <DynamicImport-Package>org.apache.felix.webconsole</DynamicImport-Package>
-                        <Sling-Nodetypes>SLING-INF/nodetypes/symlinks.cnd</Sling-Nodetypes>
+                        <Sling-Nodetypes>SLING-INF/nodetypes/superimposing.cnd</Sling-Nodetypes>
                     </instructions>
                 </configuration>
             </plugin>
 
-            <!-- release plugin -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <configuration>
-                    <tagBase>https://svn.pvtool.org/svn/day_cqstone/tags/sling/symlinks</tagBase>
-                </configuration>
-            </plugin>
-      
             <!-- Sling deployment -->
             <plugin>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>maven-sling-plugin</artifactId>
                 <configuration>
-                    <slingUrl>http://localhost:4504/system/console</slingUrl>
+                    <slingUrl>http://localhost:8080/system/console</slingUrl>
                     <user>admin</user>
                     <password>admin</password>
                     <mountByFS>false</mountByFS>

@@ -21,25 +21,25 @@
 
 //-----------------------------------------------------------------------------
 // Mixin node type to allow creating symlinks nodes
-[sling:Symlink]
+[sling:Superimpose]
     mixin
 
     // mandatory property pointing to an absolute or relative
-    // repository path, which this symlink points to
-  - sling:symlinkTarget (string) mandatory
+    // repository path, which this node should superimpose
+  - sling:superimposeTarget (string) mandatory
 
     // optional property indicating if the node itself is used
     // as root for the symlink (default), of it it's parent should
     // be used. The latter is useful in a Page/PageContent scenario
     // where the mixin cannot be added on the parent node itself.  
-  - sling:symlinkRegisterParent (boolean)
+  - sling:superimposeRegisterParent (boolean)
 
     // optional property indicating whether this symlink allows
     // the symlinked content to be overlayed by real nodes
     // created below the symlink node  
-  - sling:symlinkOverlayable (boolean)
+  - sling:superimposeOverlayable (boolean)
 
 
 //-----------------------------------------------------------------------------
 // Convenience node type for creating symlink nodes
-[sling:SymlinkResource] > sling:Symlink, nt:unstructured
+[sling:SuperimposeResource] > sling:Superimpose, nt:unstructured

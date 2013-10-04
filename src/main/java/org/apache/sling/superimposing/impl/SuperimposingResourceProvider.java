@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.sling.symlinks.impl;
+package org.apache.sling.superimposing.impl;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.sling.api.resource.Resource;
@@ -37,11 +37,11 @@ import java.util.Iterator;
 /**
  * SymlinkResourceProvider ...
  */
-public class SymlinkResourceProvider implements ResourceProvider {
+public class SuperimposingResourceProvider implements ResourceProvider {
     /**
      * default log
      */
-    private static final Logger log = LoggerFactory.getLogger(SymlinkResourceProvider.class);
+    private static final Logger log = LoggerFactory.getLogger(SuperimposingResourceProvider.class);
 
     private final String rootPath;
     private final String rootPrefix;
@@ -51,7 +51,7 @@ public class SymlinkResourceProvider implements ResourceProvider {
     private final String toString;
     private ServiceRegistration registration;
 
-    SymlinkResourceProvider(String rootPath, String targetPath, boolean overlayable) {
+    SuperimposingResourceProvider(String rootPath, String targetPath, boolean overlayable) {
         this.rootPath = rootPath;
         this.rootPrefix = rootPath.concat("/");
         this.targetPath = targetPath;
@@ -80,7 +80,7 @@ public class SymlinkResourceProvider implements ResourceProvider {
             // the existing resource where the symlink's content is retrieved from
             final Resource mappedResource = resolver.getResource(mappedPath);
             if (null != mappedResource) {
-                return new SymlinkResource(mappedResource, path);
+                return new SuperimposingResource(mappedResource, path);
             }
         }
         return null;
@@ -102,11 +102,11 @@ public class SymlinkResourceProvider implements ResourceProvider {
         
         // this supports mixing of JCR children and symlink children because the implementation
         // of the JCR resource resolver queries other resource resolver mapped to the same path as well
-        if (currentResource instanceof SymlinkResource) {
-            final SymlinkResource res = (SymlinkResource) currentResource;
+        if (currentResource instanceof SuperimposingResource) {
+            final SuperimposingResource res = (SuperimposingResource) currentResource;
             final ResourceResolver resolver = res.getResource().getResourceResolver();
             final Iterator<Resource> children = resolver.listChildren(res.getResource());
-            return new SymlinkResourceIterator(this, children);
+            return new SuperimposingResourceIterator(this, children);
         }
         return null;
     }
@@ -118,7 +118,7 @@ public class SymlinkResourceProvider implements ResourceProvider {
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPath(SymlinkResourceProvider symlink, ResourceResolver resolver, String path) {
+    static String mapPath(SuperimposingResourceProvider symlink, ResourceResolver resolver, String path) {
         if (symlink.overlayable) {
             return mapPathWithOverlay(symlink, resolver, path);
         }
@@ -134,7 +134,7 @@ public class SymlinkResourceProvider implements ResourceProvider {
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPathWithOverlay(SymlinkResourceProvider symlink, ResourceResolver resolver, String path) {
+    static String mapPathWithOverlay(SuperimposingResourceProvider symlink, ResourceResolver resolver, String path) {
         if (StringUtils.equals(path, symlink.rootPath)) {
             // symlink node path cannot be overlayed
             return mapPathWithoutOverlay(symlink, resolver, path);
@@ -165,7 +165,7 @@ public class SymlinkResourceProvider implements ResourceProvider {
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPathWithoutOverlay(SymlinkResourceProvider symlink, ResourceResolver resolver, String path) {
+    static String mapPathWithoutOverlay(SuperimposingResourceProvider symlink, ResourceResolver resolver, String path) {
         final String mappedPath;
         if (StringUtils.equals(path, symlink.rootPath)) {
             mappedPath = symlink.targetPath;
@@ -184,7 +184,7 @@ public class SymlinkResourceProvider implements ResourceProvider {
      * @param path
      * @return
      */
-    static String reverseMapPath(SymlinkResourceProvider symlink, String path) {
+    static String reverseMapPath(SuperimposingResourceProvider symlink, String path) {
         final String mappedPath;
         if (path.startsWith(symlink.targetPrefix)) {
             mappedPath = StringUtils.replaceOnce(path, symlink.targetPrefix, symlink.rootPrefix);
@@ -240,8 +240,8 @@ public class SymlinkResourceProvider implements ResourceProvider {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof SymlinkResourceProvider) {
-            final SymlinkResourceProvider srp = (SymlinkResourceProvider) o;
+        if (o instanceof SuperimposingResourceProvider) {
+            final SuperimposingResourceProvider srp = (SuperimposingResourceProvider) o;
             return this.targetPath.equals(srp.targetPath) && this.overlayable == srp.overlayable;
 
         }

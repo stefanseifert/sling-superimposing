@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.sling.symlinks.impl;
+package org.apache.sling.superimposing.impl;
 
 import org.apache.sling.api.resource.Resource;
 
@@ -24,15 +24,15 @@ import java.util.NoSuchElementException;
 /**
  * SymlinkResourceIterator ...
  */
-public class SymlinkResourceIterator implements Iterator<Resource> {
-    private final SymlinkResourceProvider symlink;
+public class SuperimposingResourceIterator implements Iterator<Resource> {
+    private final SuperimposingResourceProvider superimposingProvider;
     private Iterator<Resource> decoratee;
 
     private Resource next;
 
 
-    SymlinkResourceIterator(SymlinkResourceProvider symlink, Iterator<Resource> decoratee) {
-        this.symlink = symlink;
+    SuperimposingResourceIterator(SuperimposingResourceProvider superimposingProvider, Iterator<Resource> decoratee) {
+        this.superimposingProvider = superimposingProvider;
         this.decoratee = decoratee;
         seek();
     }
@@ -41,9 +41,9 @@ public class SymlinkResourceIterator implements Iterator<Resource> {
         next = null;
         while (next == null && decoratee.hasNext()) {
             final Resource resource = decoratee.next();
-            final String symlinkPath = SymlinkResourceProvider.reverseMapPath(symlink, resource.getPath());
+            final String symlinkPath = SuperimposingResourceProvider.reverseMapPath(superimposingProvider, resource.getPath());
             if (null != symlinkPath) {
-                next = new SymlinkResource(resource, symlinkPath);
+                next = new SuperimposingResource(resource, symlinkPath);
             }
         }
     }
