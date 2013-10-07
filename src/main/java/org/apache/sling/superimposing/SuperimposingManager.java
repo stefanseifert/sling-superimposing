@@ -23,31 +23,31 @@ import java.util.Map;
 import org.apache.sling.superimposing.impl.SuperimposingResourceProvider;
 
 /**
- * Manages the resource registrations for the Superimposing Resource Provider.
+ * Manages the resource registrations for the {@link SuperimposingResourceProvider}.
+ * Provides read-only access to all registered providers.
  */
 public interface SuperimposingManager {
 
     /**
-     * Mixin for symlinks.
+     * Mixin for superimposing.
      */
     String MIXIN_SUPERIMPOSE = "sling:Superimpose";
 
     /**
-     * Property pointing to an absolute or relative repository path, which
-     * this symlink points to.
+     * Property pointing to an absolute or relative repository path, which this superimpose definition points to.
      */
     String PROP_SUPERIMPOSE_TARGET = "sling:superimposeTarget";
 
     /**
-     * Property indicating if the node itself is used as root for the symlink (default),
+     * Property indicating if the node itself is used as root for the superimpose definition (default),
      * of it it's parent should be used. The latter is useful in a Page/PageContent scenario
      * where the mixin cannot be added on the parent node itself.
      */
     String PROP_SUPERIMPOSE_REGISTER_PARENT = "sling:superimposeRegisterParent";
 
     /**
-     * Property indicating whether this symlink allows the symlinked content
-     * to be overlayed by real nodes created below the symlink node.
+     * Property indicating whether this superimposing definition allows the superimposed content
+     * to be overlayed by real nodes created below the superimposing root node.
      * Default value is false.
      */
     String PROP_SUPERIMPOSE_OVERLAYABLE = "sling:superimposeOverlayable";
@@ -60,6 +60,6 @@ public interface SuperimposingManager {
     /**
      * @return Immutable map with all superimposing resource providers currently registered
      */
-    Map<String, SuperimposingResourceProvider> getRegisteredSymlinkProviders();
+    Map<String, SuperimposingResourceProvider> getRegisteredProviders();
 
 }

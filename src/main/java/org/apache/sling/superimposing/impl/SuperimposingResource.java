@@ -22,9 +22,8 @@ import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.resource.ResourceResolver;
 
 /**
- * SymlinkResource is provided by SymlinkResourceProvider instances.
- * It delegates to an existing JCR resource but overrides the getPath()
- * method to point to the symlinked path.
+ * {@link SuperimposingResource} is provided by {@link SuperimposingResourceProvider} instances.
+ * It delegates to an existing underlyling resource but overrides the getPath() method to point to the superimposed path.
  */
 public class SuperimposingResource extends AbstractResource implements Resource {
     private final Resource resource;

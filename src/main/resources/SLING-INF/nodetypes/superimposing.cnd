@@ -20,7 +20,7 @@
 <sling = 'http://sling.apache.org/jcr/sling/1.0'>
 
 //-----------------------------------------------------------------------------
-// Mixin node type to allow creating symlinks nodes
+// Mixin node type to allow creating superimposing nodes
 [sling:Superimpose]
     mixin
 
@@ -29,17 +29,17 @@
   - sling:superimposeTarget (string) mandatory
 
     // optional property indicating if the node itself is used
-    // as root for the symlink (default), of it it's parent should
+    // as root for the superimposing definition (default), of it it's parent should
     // be used. The latter is useful in a Page/PageContent scenario
     // where the mixin cannot be added on the parent node itself.  
   - sling:superimposeRegisterParent (boolean)
 
-    // optional property indicating whether this symlink allows
-    // the symlinked content to be overlayed by real nodes
-    // created below the symlink node  
+    // optional property indicating whether this superimposing definition allows
+    // the superimposed content to be overlayed by real nodes
+    // created below the superimposing root node  
   - sling:superimposeOverlayable (boolean)
 
 
 //-----------------------------------------------------------------------------
-// Convenience node type for creating symlink nodes
+// Convenience node type for creating superimposing nodes
 [sling:SuperimposeResource] > sling:Superimpose, nt:unstructured

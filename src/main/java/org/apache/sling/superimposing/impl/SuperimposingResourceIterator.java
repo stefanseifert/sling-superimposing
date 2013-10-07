@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * SymlinkResourceIterator ...
+ * Superimposing resource iterator.
  */
 public class SuperimposingResourceIterator implements Iterator<Resource> {
     private final SuperimposingResourceProvider superimposingProvider;
@@ -41,9 +41,9 @@ public class SuperimposingResourceIterator implements Iterator<Resource> {
         next = null;
         while (next == null && decoratee.hasNext()) {
             final Resource resource = decoratee.next();
-            final String symlinkPath = SuperimposingResourceProvider.reverseMapPath(superimposingProvider, resource.getPath());
-            if (null != symlinkPath) {
-                next = new SuperimposingResource(resource, symlinkPath);
+            final String superimposingPath = SuperimposingResourceProvider.reverseMapPath(superimposingProvider, resource.getPath());
+            if (null != superimposingPath) {
+                next = new SuperimposingResource(resource, superimposingPath);
             }
         }
     }

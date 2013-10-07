@@ -16,23 +16,17 @@
  */
 package org.apache.sling.superimposing.impl;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Dictionary;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.observation.Event;
-import javax.jcr.observation.EventIterator;
-import javax.jcr.observation.EventListener;
-import javax.jcr.query.Query;
-
+import org.apache.commons.collections.IteratorUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -40,6 +34,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.sling.api.SlingConstants;
 import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -50,25 +45,34 @@ import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.superimposing.SuperimposingManager;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventConstants;
+import org.osgi.service.event.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Manages the resource registrations for the Superimposing Resource Provider.
+ * Manages the resource registrations for the {@link SuperimposingResourceProvider}.
+ * Provides read-only access to all registered providers.
  */
 @Component(label = "Apache Sling Superimposing Resource Manager",
     description = "Manages the resource registrations for the Superimposing Resource Provider.",
     immediate = true, metatype = true)
 @Service(SuperimposingManager.class)
-public class SuperimposingManagerImpl implements SuperimposingManager, EventListener {
+@Property(name=EventConstants.EVENT_TOPIC, value={SlingConstants.TOPIC_RESOURCE_ADDED,SlingConstants.TOPIC_RESOURCE_CHANGED,SlingConstants.TOPIC_RESOURCE_REMOVED})
+public class SuperimposingManagerImpl implements SuperimposingManager, EventHandler {
 
-    /**
-     * XPath query for all nodes marked as superimposed trees.
-     */
-    private static final String SUPERIMPOSE_QUERY = "//element(*, " + MIXIN_SUPERIMPOSE + ")";
-
-    @Property(label = "Enabled", name = "enabled", description = "Enable/Disable the superimposing functionality.", boolValue = false)
+    @Property(label = "Enabled", description = "Enable/Disable the superimposing functionality.", boolValue = SuperimposingManagerImpl.ENABLED_DEFAULT)
+    private static final String ENABLED_PROPERTY = "enabled";
+    private static final boolean ENABLED_DEFAULT = false;
     private boolean enabled;
+    
+    @Property(label = "Find all Queries", description = "List of query expressions to find all existing superimposing registrations on service startup. "
+            + "Query syntax is depending on underlying resource provdider implementation. Prepend the query with query syntax name separated by \"|\".",
+            value={SuperimposingManagerImpl.FINDALLQUERIES_DEFAULT}, cardinality=Integer.MAX_VALUE)
+    private static final String FINDALLQUERIES_PROPERTY = "findAllQueries";
+    private static final String FINDALLQUERIES_DEFAULT = "xpath|//element(*, " + MIXIN_SUPERIMPOSE + ")";
+    private String[] findAllQueries;
     
     /**
      * Map for holding the superimposing mappings, with the superimpose path as key and the providers as values
@@ -100,8 +104,23 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     private static final Logger log = LoggerFactory.getLogger(SuperimposingManagerImpl.class);
 
 
-    private Iterator<Resource> findeSuperimposings(ResourceResolver resolver) {
-        return resolver.findResources(SUPERIMPOSE_QUERY, Query.XPATH);
+    /**
+     * Find all existing superimposing registrations using all query defined in service configuration.
+     * @param resolver Resource resolver
+     * @return All superimposing registrations
+     */
+    @SuppressWarnings("unchecked")
+    private List<Resource> findeSuperimposings(ResourceResolver resolver) {
+        List<Resource> allResources = new ArrayList<Resource>();
+        for (String queryString : this.findAllQueries) {
+            if (!StringUtils.contains(queryString, "|")) {
+                throw new IllegalArgumentException("Query string does not contain query syntax seperated by '|': " + queryString);
+            }
+            String queryLanguage = StringUtils.substringBefore(queryString, "|");
+            String query = StringUtils.substringAfter(queryString, "|");
+            allResources.addAll(IteratorUtils.toList(resolver.findResources(query, queryLanguage)));
+        }
+        return allResources;
     }
 
     private void registerAllSuperimposings() {
@@ -110,10 +129,9 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
         long countSuccess = 0;
         long countFailed = 0;
 
-        final Iterator<Resource> superimposings = findeSuperimposings(resolver);
-        while (superimposings.hasNext()) {
-            final Resource superimposingResource = superimposings.next();
-            boolean success = registerSuperimposing(superimposingResource);
+        final List<Resource> existingSuperimposings = findeSuperimposings(resolver);
+        for (Resource superimposingResource : existingSuperimposings) {
+            boolean success = registerProvider(superimposingResource);
             if (success) {
                 countSuccess++;
             } else {
@@ -122,8 +140,8 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
         }
 
         final long time = System.currentTimeMillis() - start;
-        log.info("Registered {} SuperimposingResourceProvider(s) in {} ms, skipping {} invalid one(s).", new Object[] {
-                countSuccess, time, countFailed });
+        log.info("Registered {} SuperimposingResourceProvider(s) in {} ms, skipping {} invalid one(s).",
+                new Object[] { countSuccess, time, countFailed });
     }
 
     /**
@@ -131,7 +149,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
      * @return true if registration was done, false if skipped (already registered)
      * @throws RepositoryException
      */
-    private boolean registerSuperimposing(Resource superimposingResource) {
+    private boolean registerProvider(Resource superimposingResource) {
         ValueMap props = ResourceUtil.getValueMap(superimposingResource);
         String superimposePath = superimposingResource.getPath();
         final String targetPath = props.get(PROP_SUPERIMPOSE_TARGET, String.class);
@@ -144,11 +162,11 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             valid = false;
         }
         else {
-            // check whether the parent of the symlink node should be registered as symlink source
+            // check whether the parent of the node should be registered as superimposing provider
             if (registerParent) {
                 superimposePath = ResourceUtil.getParent(superimposePath);
             }
-            // target path is not valid if it equals to a parent or child of the symlink path, or to the symlink path itself
+            // target path is not valid if it equals to a parent or child of the superimposing path, or to the superimposing path itself
             if (StringUtils.equals(targetPath, superimposePath)
                     || StringUtils.startsWith(targetPath, superimposePath + "/")
                     || StringUtils.startsWith(superimposePath, targetPath + "/")) {
@@ -156,7 +174,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             }
         }
 
-        // register valid symlink
+        // register valid superimposing
         if (valid) {
             final SuperimposingResourceProvider srp = new SuperimposingResourceProvider(superimposePath, targetPath, overlayable);
             final SuperimposingResourceProvider oldSrp = superimposingProviders.put(superimposePath, srp);
@@ -174,27 +192,27 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             }
         }
 
-        // otherwise remove previous symlink resource provider if new symlink definition is not valid
+        // otherwise remove previous superimposing resource provider if new superimposing definition is not valid
         else {
             final SuperimposingResourceProvider oldSrp = superimposingProviders.remove(superimposePath);
             if (null != oldSrp) {
                 log.debug("Unregistering resource provider {}.", superimposePath);
                 oldSrp.unregisterService();
             }
-            log.warn("Symlink '{}' pointing to '{}' is invalid.", superimposePath, targetPath);
+            log.warn("Superimposing definition '{}' pointing to '{}' is invalid.", superimposePath, targetPath);
         }
 
         return false;
     }
 
-    private void registerSymlink(String path) {
-        final Resource symlink = resolver.getResource(path);
-        if (symlink != null) {
-            registerSuperimposing(symlink);
+    private void registerProvider(String path) {
+        final Resource provider = resolver.getResource(path);
+        if (provider != null) {
+            registerProvider(provider);
         }
     }
 
-    private void unregisterSymlink(String path) {
+    private void unregisterProvider(String path) {
         final SuperimposingResourceProvider srp = superimposingProviders.remove(path);
         if (null != srp) {
             srp.unregisterService();
@@ -204,34 +222,23 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     // ---------- SCR Integration
 
     @Activate
-    protected synchronized void activate(final ComponentContext ctx) throws LoginException, RepositoryException {
+    protected synchronized void activate(final ComponentContext ctx) throws LoginException {
         
         // check enabled state
         @SuppressWarnings("unchecked")
         final Dictionary<String, Object> props = ctx.getProperties();
-        this.enabled = PropertiesUtil.toBoolean(props.get("enabled"), false);
+        this.enabled = PropertiesUtil.toBoolean(props.get(ENABLED_PROPERTY), ENABLED_DEFAULT);
         log.debug("Config: " + "Enabled={} ", enabled);
         if (!isEnabled()) {
             return;
         }
-
+        
+        // get "find all" queries
+        this.findAllQueries = PropertiesUtil.toStringArray(FINDALLQUERIES_PROPERTY, new String[] { FINDALLQUERIES_DEFAULT });
         
         if (null == resolver) {
             bundleContext = ctx.getBundleContext();
             resolver = resolverFactory.getAdministrativeResourceResolver(null);
-
-            // Watch for events on the root - that might be one of our root
-            // folders
-            final Session session = resolver.adaptTo(Session.class);
-            session.getWorkspace()
-                    .getObservationManager()
-                    .addEventListener(
-                            this,
-                            Event.NODE_ADDED | Event.NODE_REMOVED | Event.PROPERTY_ADDED | Event.PROPERTY_CHANGED
-                                    | Event.PROPERTY_REMOVED, "/", true, // isDeep
-                            null, // uuids
-                            null, // node types
-                            true); // noLocal
 
             initialization = Executors.newSingleThreadExecutor().submit(new Runnable() {
                 public void run() {
@@ -242,7 +249,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     }
 
     @Deactivate
-    protected synchronized void deactivate(final ComponentContext ctx) throws RepositoryException {
+    protected synchronized void deactivate(final ComponentContext ctx) {
         try {
             // make sure initialization has finished
             if (null != initialization && !initialization.isDone()) {
@@ -253,10 +260,6 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
                 srp.unregisterService();
             }
 
-            if (null != resolver) {
-                final Session session = resolver.adaptTo(Session.class);
-                session.getWorkspace().getObservationManager().removeEventListener(this);
-            }
         } finally {
             if (null != resolver) {
                 resolver.close();
@@ -267,54 +270,21 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
         }
     }
 
-    // ---------- EventListener
-
-    public void onEvent(EventIterator eventIterator) {
-        if (isEnabled()) {
-            try {
-                // collect all actions to be performed for this event
-                final Map<String, Boolean> actions = new HashMap<String, Boolean>();
-                boolean nodeAdded = false;
-                boolean nodeRemoved = false;
-                while (eventIterator.hasNext()) {
-                    final Event event = eventIterator.nextEvent();
-                    final String path = event.getPath();
-                    final String name = ResourceUtil.getName(path);
-                    if (event.getType() == Event.NODE_ADDED) {
-                        nodeAdded = true;
-                    } else if (event.getType() == Event.NODE_REMOVED && superimposingProviders.containsKey(path)) {
-                        nodeRemoved = true;
-                        actions.put(path, false);
-                    } else if (StringUtils.equals(name, PROP_SUPERIMPOSE_TARGET)
-                            || StringUtils.equals(name, PROP_SUPERIMPOSE_REGISTER_PARENT)
-                            || StringUtils.equals(name, PROP_SUPERIMPOSE_OVERLAYABLE)) {
-                        final String nodePath = ResourceUtil.getParent(path);
-                        actions.put(nodePath, true);
-                    }
-
-                }
-
-                // execute all collected actions (having this outside the above
-                // loop prevents repeated registrations within one transaction
-                // but allows for several symlinks to be added within a single
-                // transaction)
-                for (Map.Entry<String, Boolean> action : actions.entrySet()) {
-                    if (action.getValue()) {
-                        registerSymlink(action.getKey());
-                    } else {
-                        unregisterSymlink(action.getKey());
-                    }
-                }
-
-                if (nodeAdded && nodeRemoved) {
-                    // maybe a symlink was moved, re-register all symlinks
-                    // (existing
-                    // ones will be skipped)
-                    registerAllSuperimposings();
-                }
-            } catch (RepositoryException e) {
-                log.error("Unexpected repository exception during event processing.");
-            }
+    /**
+     * Handle resource events to add or remove superimposing registrations
+     */
+    public void handleEvent(Event event) {
+        if (!isEnabled()) {
+            return;
+        }
+        String path = (String)event.getProperty(SlingConstants.PROPERTY_PATH);
+        String topic = event.getTopic();
+        if (StringUtils.equals(SlingConstants.TOPIC_RESOURCE_ADDED, topic)
+                || StringUtils.equals(SlingConstants.TOPIC_RESOURCE_CHANGED, topic)) {
+            registerProvider(path);
+        }
+        else if (StringUtils.equals(SlingConstants.TOPIC_RESOURCE_REMOVED, topic)) {
+            unregisterProvider(path);
         }
     }
 
@@ -328,7 +298,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     /**
      * @return Immutable map with all superimposing resource providers currently registered
      */
-    public Map<String, SuperimposingResourceProvider> getRegisteredSymlinkProviders() {
+    public Map<String, SuperimposingResourceProvider> getRegisteredProviders() {
         return Collections.unmodifiableMap(superimposingProviders);
     }
     

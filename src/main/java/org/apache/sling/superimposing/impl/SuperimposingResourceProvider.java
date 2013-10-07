@@ -27,17 +27,16 @@ import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Iterator;
 
 /**
- * SymlinkResourceProvider ...
+ * Superimposing resource provider.
  */
 public class SuperimposingResourceProvider implements ResourceProvider {
+
     /**
      * default log
      */
@@ -77,7 +76,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     public Resource getResource(ResourceResolver resolver, String path) {
         final String mappedPath = mapPath(this, resolver, path);
         if (null != mappedPath) {
-            // the existing resource where the symlink's content is retrieved from
+            // the existing resource where the superimposed content is retrieved from
             final Resource mappedResource = resolver.getResource(mappedPath);
             if (null != mappedResource) {
                 return new SuperimposingResource(mappedResource, path);
@@ -100,8 +99,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
             currentResource = resource;
         }
         
-        // this supports mixing of JCR children and symlink children because the implementation
-        // of the JCR resource resolver queries other resource resolver mapped to the same path as well
+        // delegate resource listing to resource resolver 
         if (currentResource instanceof SuperimposingResource) {
             final SuperimposingResource res = (SuperimposingResource) currentResource;
             final ResourceResolver resolver = res.getResource().getResourceResolver();
@@ -112,65 +110,72 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     }
 
     /**
-     * Maps a path below the symlink to the target resource's path.
-     * @param symlink Symlink resource provicer
+     * Maps a path below the superimposing root to the target resource's path.
+     * @param provider Superimposing resource provicer
      * @param resolver Resourcer resolver
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPath(SuperimposingResourceProvider symlink, ResourceResolver resolver, String path) {
-        if (symlink.overlayable) {
-            return mapPathWithOverlay(symlink, resolver, path);
+    static String mapPath(SuperimposingResourceProvider provider, ResourceResolver resolver, String path) {
+        if (provider.overlayable) {
+            return mapPathWithOverlay(provider, resolver, path);
         }
         else {
-            return mapPathWithoutOverlay(symlink, resolver, path);
+            return mapPathWithoutOverlay(provider, resolver, path);
         }
     }
 
     /**
-     * Maps a path below the symlink to the target resource's path with check for overlaying.
-     * @param symlink Symlink resource provicer
+     * Maps a path below the superimposing root to the target resource's path with check for overlaying.
+     * @param provider Superimposing resource provicer
      * @param resolver Resourcer resolver
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPathWithOverlay(SuperimposingResourceProvider symlink, ResourceResolver resolver, String path) {
-        if (StringUtils.equals(path, symlink.rootPath)) {
-            // symlink node path cannot be overlayed
-            return mapPathWithoutOverlay(symlink, resolver, path);
+    static String mapPathWithOverlay(SuperimposingResourceProvider provider, ResourceResolver resolver, String path) {
+        if (StringUtils.equals(path, provider.rootPath)) {
+            // Superimposing root path cannot be overlayed
+            return mapPathWithoutOverlay(provider, resolver, path);
         }
-        else if (StringUtils.startsWith(path, symlink.rootPrefix)) {
-            final Session session = resolver.adaptTo(Session.class);
-            try {
-                boolean itemExistsInSymlinkPath = (null != session && session.itemExists(path));
-                if (itemExistsInSymlinkPath) {
-                    // item exists, allow JCR resource provider to step in
-                    return null;
-                }
-                else {
-                    // item does not exist, overlay cannot be applied, fallback to mapped path without overlay
-                    return mapPathWithoutOverlay(symlink, resolver, path);
-                }
-            } catch (RepositoryException e) {
-                log.error("Error accessing the repository. ", e);
+        else if (StringUtils.startsWith(path, provider.rootPrefix)) {
+            if (hasOverlayResource(resolver, path)) {
+                // overlay item exists, allow underlying resource provider to step in
+                return null;
+            }
+            else {
+                // overlay item does not exist, overlay cannot be applied, fallback to mapped path without overlay
+                return mapPathWithoutOverlay(provider, resolver, path);
             }
         }
         return null;
     }
+    
+    static boolean hasOverlayResource(ResourceResolver resolver, String path) {
+        // TODO: implement check for overlay resource in underlying resource provider
+        /*
+        final Session session = resolver.adaptTo(Session.class);
+        try {
+            return (null != session && session.itemExists(path));
+        } catch (RepositoryException e) {
+            log.error("Error accessing the repository. ", e);
+        }
+        */
+        return false;
+    }
 
     /**
-     * Maps a path below the symlink to the target resource's path without check for overlaying.
-     * @param symlink Symlink resource provicer
+     * Maps a path below the superimposing root to the target resource's path without check for overlaying.
+     * @param provider Superimposing resource provicer
      * @param resolver Resourcer resolver
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPathWithoutOverlay(SuperimposingResourceProvider symlink, ResourceResolver resolver, String path) {
+    static String mapPathWithoutOverlay(SuperimposingResourceProvider provider, ResourceResolver resolver, String path) {
         final String mappedPath;
-        if (StringUtils.equals(path, symlink.rootPath)) {
-            mappedPath = symlink.targetPath;
-        } else if (StringUtils.startsWith(path, symlink.rootPrefix)) {
-            mappedPath = StringUtils.replaceOnce(path, symlink.rootPrefix, symlink.targetPrefix);
+        if (StringUtils.equals(path, provider.rootPath)) {
+            mappedPath = provider.targetPath;
+        } else if (StringUtils.startsWith(path, provider.rootPrefix)) {
+            mappedPath = StringUtils.replaceOnce(path, provider.rootPrefix, provider.targetPrefix);
         } else {
             mappedPath = null;
         }
@@ -178,18 +183,18 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     }
 
     /**
-     * Maps a path below the target resource to the symlinked resource's path.
+     * Maps a path below the target resource to the superimposed resource's path.
      *
-     * @param symlink
+     * @param provider
      * @param path
      * @return
      */
-    static String reverseMapPath(SuperimposingResourceProvider symlink, String path) {
+    static String reverseMapPath(SuperimposingResourceProvider provider, String path) {
         final String mappedPath;
-        if (path.startsWith(symlink.targetPrefix)) {
-            mappedPath = StringUtils.replaceOnce(path, symlink.targetPrefix, symlink.rootPrefix);
-        } else if (path.equals(symlink.targetPath)) {
-            mappedPath = symlink.rootPath;
+        if (path.startsWith(provider.targetPrefix)) {
+            mappedPath = StringUtils.replaceOnce(path, provider.targetPrefix, provider.rootPrefix);
+        } else if (path.equals(provider.targetPath)) {
+            mappedPath = provider.rootPath;
         } else {
             mappedPath = null;
         }
@@ -200,7 +205,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
 
     void registerService(BundleContext context) {
         final Dictionary<String, Object> props = new Hashtable<String, Object>();
-        props.put(Constants.SERVICE_DESCRIPTION, "Provider of symlink resources");
+        props.put(Constants.SERVICE_DESCRIPTION, "Provider of superimposed resources");
         props.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
         props.put(ROOTS, new String[]{rootPath});
 
