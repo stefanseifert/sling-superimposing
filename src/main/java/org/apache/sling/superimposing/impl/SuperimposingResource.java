@@ -62,7 +62,7 @@ public class SuperimposingResource extends AbstractResource implements Resource 
     public <AdapterType> AdapterType adaptTo(Class<AdapterType> type) {
         AdapterType adapted = super.adaptTo(type);
         if (null == adapted) {
-            // TODO: does it really make sense to support adapting to Node.class?
+            // fallback to adapt from mapped resource (although this may lead sometimes to unexpected results e.g. original JCR node)
             adapted = resource.adaptTo(type);
         }
         return adapted;
@@ -79,4 +79,5 @@ public class SuperimposingResource extends AbstractResource implements Resource 
                 .append(", path=").append(getPath())
                 .append(", resource=[").append(getResource()).append("]]").toString();
     }
+
 }

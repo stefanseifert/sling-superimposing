@@ -25,8 +25,9 @@ import java.util.NoSuchElementException;
  * Superimposing resource iterator.
  */
 public class SuperimposingResourceIterator implements Iterator<Resource> {
+
     private final SuperimposingResourceProvider superimposingProvider;
-    private Iterator<Resource> decoratee;
+    private final Iterator<Resource> decoratee;
 
     private Resource next;
 
@@ -64,4 +65,5 @@ public class SuperimposingResourceIterator implements Iterator<Resource> {
     public void remove() {
         throw new UnsupportedOperationException();
     }
+
 }
