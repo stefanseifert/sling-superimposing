@@ -16,6 +16,14 @@
  */
 package org.apache.sling.superimposing.impl;
 
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Iterator;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceProvider;
@@ -26,11 +34,6 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.http.HttpServletRequest;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Iterator;
 
 /**
  * Superimposing resource provider.
@@ -151,15 +154,13 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     }
     
     static boolean hasOverlayResource(ResourceResolver resolver, String path) {
-        // TODO: implement check for overlay resource in underlying resource provider
-        /*
+        // check for overlay resource by checking directly in underlying JCR
         final Session session = resolver.adaptTo(Session.class);
         try {
             return (null != session && session.itemExists(path));
         } catch (RepositoryException e) {
             log.error("Error accessing the repository. ", e);
         }
-        */
         return false;
     }
 
