@@ -25,7 +25,7 @@
     </parent>
 
     <artifactId>org.apache.sling.superimposing</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>Apache Sling Superimposing Resource Provider</name>
@@ -34,6 +34,12 @@
         All cahnges from the master tree are reflected to the mirrored tree.
         It is possible to add or overlay resources in the mirrord tree.
     </description>
+    
+    <properties>
+      <sling.url>http://localhost:8080</sling.url>
+      <sling.user>admin</sling.user>
+      <sling.password>admin</sling.password>
+    </properties>
 
 <!-- *** TODO: activate this again when commiting to apache *** -->
 <!--
@@ -73,9 +79,9 @@
                 <groupId>org.apache.sling</groupId>
                 <artifactId>maven-sling-plugin</artifactId>
                 <configuration>
-                    <slingUrl>http://localhost:8080/system/console</slingUrl>
-                    <user>admin</user>
-                    <password>admin</password>
+                    <slingUrl>${sling.url}/system/console</slingUrl>
+                    <user>${sling.user}</user>
+                    <password>${admin}</password>
                     <mountByFS>false</mountByFS>
                 </configuration>
             </plugin>

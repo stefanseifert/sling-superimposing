@@ -32,6 +32,7 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingConstants;
@@ -59,7 +60,8 @@ import org.slf4j.LoggerFactory;
     description = "Manages the resource registrations for the Superimposing Resource Provider.",
     immediate = true, metatype = true)
 @Service(SuperimposingManager.class)
-@Property(name=EventConstants.EVENT_TOPIC, value={SlingConstants.TOPIC_RESOURCE_ADDED,SlingConstants.TOPIC_RESOURCE_CHANGED,SlingConstants.TOPIC_RESOURCE_REMOVED})
+@Property(name=EventConstants.EVENT_TOPIC, propertyPrivate=true,
+    value={SlingConstants.TOPIC_RESOURCE_ADDED,SlingConstants.TOPIC_RESOURCE_CHANGED,SlingConstants.TOPIC_RESOURCE_REMOVED})
 public class SuperimposingManagerImpl implements SuperimposingManager, EventHandler {
 
     @Property(label = "Enabled", description = "Enable/Disable the superimposing functionality.", boolValue = SuperimposingManagerImpl.ENABLED_DEFAULT)
@@ -69,9 +71,9 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventHand
     
     @Property(label = "Find all Queries", description = "List of query expressions to find all existing superimposing registrations on service startup. "
             + "Query syntax is depending on underlying resource provdider implementation. Prepend the query with query syntax name separated by \"|\".",
-            value={SuperimposingManagerImpl.FINDALLQUERIES_DEFAULT}, cardinality=Integer.MAX_VALUE)
+            value={SuperimposingManagerImpl.FINDALLQUERIES_DEFAULT}, unbounded=PropertyUnbounded.ARRAY)
     private static final String FINDALLQUERIES_PROPERTY = "findAllQueries";
-    private static final String FINDALLQUERIES_DEFAULT = "xpath|//element(*, " + MIXIN_SUPERIMPOSE + ")";
+    private static final String FINDALLQUERIES_DEFAULT = "xpath|//element(*\\," + MIXIN_SUPERIMPOSE + ")";
     private String[] findAllQueries;
     
     /**
@@ -234,7 +236,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventHand
         }
         
         // get "find all" queries
-        this.findAllQueries = PropertiesUtil.toStringArray(FINDALLQUERIES_PROPERTY, new String[] { FINDALLQUERIES_DEFAULT });
+        this.findAllQueries = PropertiesUtil.toStringArray(props.get(FINDALLQUERIES_PROPERTY), new String[0]);
         
         if (null == resolver) {
             bundleContext = ctx.getBundleContext();

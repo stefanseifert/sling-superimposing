@@ -57,6 +57,7 @@ public class SuperimposingResourceTest {
         when(originalResource.getResourceSuperType()).thenReturn(null);
         when(originalResource.getResourceMetadata()).thenReturn(this.resourceMetadata);
         when(originalResource.getResourceResolver()).thenReturn(this.resourceResolver);
+        resourceMetadata.setResolutionPath(ORIGINAL_PATH);
         underTest = new SuperimposingResource(this.originalResource, SUPERIMPOSED_PATH);
     }
 
@@ -65,7 +66,7 @@ public class SuperimposingResourceTest {
         assertEquals(SUPERIMPOSED_PATH, underTest.getPath());
         assertEquals(RESOURCE_TYPE, underTest.getResourceType());
         assertNull(underTest.getResourceSuperType());
-        assertSame(this.resourceMetadata, underTest.getResourceMetadata());
+        assertEquals(ORIGINAL_PATH, underTest.getResourceMetadata().getResolutionPath());
         assertSame(this.resourceResolver, underTest.getResourceResolver());
     }
 
