@@ -73,7 +73,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventHand
             + "Query syntax is depending on underlying resource provdider implementation. Prepend the query with query syntax name separated by \"|\".",
             value={SuperimposingManagerImpl.FINDALLQUERIES_DEFAULT}, unbounded=PropertyUnbounded.ARRAY)
     private static final String FINDALLQUERIES_PROPERTY = "findAllQueries";
-    private static final String FINDALLQUERIES_DEFAULT = "xpath|//element(*\\," + MIXIN_SUPERIMPOSE + ")";
+    private static final String FINDALLQUERIES_DEFAULT = "JCR-SQL2|SELECT * FROM '" + MIXIN_SUPERIMPOSE + "'";
     private String[] findAllQueries;
     
     /**
@@ -236,7 +236,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventHand
         }
         
         // get "find all" queries
-        this.findAllQueries = PropertiesUtil.toStringArray(props.get(FINDALLQUERIES_PROPERTY), new String[0]);
+        this.findAllQueries = PropertiesUtil.toStringArray(props.get(FINDALLQUERIES_PROPERTY), new String[] { FINDALLQUERIES_DEFAULT });
         
         if (null == resolver) {
             bundleContext = ctx.getBundleContext();
