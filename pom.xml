@@ -56,13 +56,13 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-scr-plugin</artifactId>
-                <version>1.8.0</version>
+                <version>1.9.0</version>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>2.3.4</version>
+                <version>2.4.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
@@ -157,7 +157,7 @@
         <dependency>
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.scr.annotations</artifactId>
-            <version>1.7.0</version>
+            <version>1.9.6</version>
             <scope>compile</scope>
         </dependency>
 
@@ -182,5 +182,26 @@
         </dependency>
 
     </dependencies>
+
+<!-- *** TODO: remove this again when commiting to apache *** -->
+    <!-- scm -->
+    <scm>
+        <connection>scm:svn:https://svn.pvtool.org/svn/day_cqstone/trunk/sling/symlinks</connection>
+        <developerConnection>scm:svn:https://svn.pvtool.org/svn/day_cqstone/trunk/sling/symlinks</developerConnection>
+        <url>https://svn.pvtool.org/svn/day_cqstone/trunk/sling/symlinks</url>
+    </scm>
+  
+<!-- *** TODO: remove this again when commiting to apache *** -->
+    <!-- distribution management -->
+    <distributionManagement>
+        <repository>
+            <id>cqstone</id>
+            <url>https://www.pvtool.de/nexus/content/repositories/cqstone</url>
+        </repository>
+        <snapshotRepository>
+            <id>cqstone-snapshots</id>
+            <url>https://www.pvtool.de/nexus/content/repositories/cqstone-snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>
