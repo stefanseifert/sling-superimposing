@@ -70,6 +70,9 @@ public class SuperimposingResourceTest {
         assertSame(this.resourceResolver, underTest.getResourceResolver());
     }
 
+    /**
+     * Make sure adaptions are inherited from source resource, but can be overridden by superimposing resource instance. 
+     */
     @Test
     public void testAdaptTo() {
         SlingAdaptable.setAdapterManager(new AdapterManager() {

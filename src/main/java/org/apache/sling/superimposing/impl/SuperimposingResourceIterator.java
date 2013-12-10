@@ -22,7 +22,8 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * Superimposing resource iterator.
+ * Iterates over children of a {@link SuperimposingResource} by iterating over the children of the source resource
+ * and remapping and wrapping all children in SuperimposingResource instances.
  */
 public class SuperimposingResourceIterator implements Iterator<Resource> {
 
@@ -30,7 +31,6 @@ public class SuperimposingResourceIterator implements Iterator<Resource> {
     private final Iterator<Resource> decoratee;
 
     private Resource next;
-
 
     SuperimposingResourceIterator(SuperimposingResourceProvider superimposingProvider, Iterator<Resource> decoratee) {
         this.superimposingProvider = superimposingProvider;

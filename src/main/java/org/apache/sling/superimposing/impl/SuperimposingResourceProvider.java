@@ -40,15 +40,12 @@ import org.slf4j.LoggerFactory;
  */
 public class SuperimposingResourceProvider implements ResourceProvider {
 
-    /**
-     * default log
-     */
     private static final Logger log = LoggerFactory.getLogger(SuperimposingResourceProvider.class);
 
     private final String rootPath;
     private final String rootPrefix;
     private final String sourcePath;
-    private final String targetPrefix;
+    private final String sourcePathPrefix;
     private final boolean overlayable;
     private final String toString;
     private ServiceRegistration registration;
@@ -57,7 +54,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
         this.rootPath = rootPath;
         this.rootPrefix = rootPath.concat("/");
         this.sourcePath = sourcePath;
-        this.targetPrefix = sourcePath.concat("/");
+        this.sourcePathPrefix = sourcePath.concat("/");
         this.overlayable = overlayable;
         StringBuilder sb = new StringBuilder(getClass().getSimpleName());
         sb.append(" [path=").append(rootPath).append(", ");
@@ -176,7 +173,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
         if (StringUtils.equals(path, provider.rootPath)) {
             mappedPath = provider.sourcePath;
         } else if (StringUtils.startsWith(path, provider.rootPrefix)) {
-            mappedPath = StringUtils.replaceOnce(path, provider.rootPrefix, provider.targetPrefix);
+            mappedPath = StringUtils.replaceOnce(path, provider.rootPrefix, provider.sourcePathPrefix);
         } else {
             mappedPath = null;
         }
@@ -192,8 +189,8 @@ public class SuperimposingResourceProvider implements ResourceProvider {
      */
     static String reverseMapPath(SuperimposingResourceProvider provider, String path) {
         final String mappedPath;
-        if (path.startsWith(provider.targetPrefix)) {
-            mappedPath = StringUtils.replaceOnce(path, provider.targetPrefix, provider.rootPrefix);
+        if (path.startsWith(provider.sourcePathPrefix)) {
+            mappedPath = StringUtils.replaceOnce(path, provider.sourcePathPrefix, provider.rootPrefix);
         } else if (path.equals(provider.sourcePath)) {
             mappedPath = provider.rootPath;
         } else {
