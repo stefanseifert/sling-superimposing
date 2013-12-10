@@ -36,7 +36,7 @@ public interface SuperimposingManager {
     /**
      * Property pointing to an absolute or relative repository path, which this superimpose definition points to.
      */
-    String PROP_SUPERIMPOSE_TARGET = "sling:superimposeTarget";
+    String PROP_SUPERIMPOSE_SOURCE_PATH = "sling:superimposeSourcePath";
 
     /**
      * Property indicating if the node itself is used as root for the superimpose definition (default),

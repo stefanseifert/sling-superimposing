@@ -155,13 +155,13 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     private boolean registerProvider(Resource superimposingResource) {
         ValueMap props = ResourceUtil.getValueMap(superimposingResource);
         String superimposePath = superimposingResource.getPath();
-        final String targetPath = props.get(PROP_SUPERIMPOSE_TARGET, String.class);
+        final String sourcePath = props.get(PROP_SUPERIMPOSE_SOURCE_PATH, String.class);
         final boolean registerParent = props.get(PROP_SUPERIMPOSE_REGISTER_PARENT, false);
         final boolean overlayable = props.get(PROP_SUPERIMPOSE_OVERLAYABLE, false);
 
         // check if superimposing definition is valid
         boolean valid = true;
-        if (StringUtils.isBlank(targetPath)) {
+        if (StringUtils.isBlank(sourcePath)) {
             valid = false;
         }
         else {
@@ -170,16 +170,16 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
                 superimposePath = ResourceUtil.getParent(superimposePath);
             }
             // target path is not valid if it equals to a parent or child of the superimposing path, or to the superimposing path itself
-            if (StringUtils.equals(targetPath, superimposePath)
-                    || StringUtils.startsWith(targetPath, superimposePath + "/")
-                    || StringUtils.startsWith(superimposePath, targetPath + "/")) {
+            if (StringUtils.equals(sourcePath, superimposePath)
+                    || StringUtils.startsWith(sourcePath, superimposePath + "/")
+                    || StringUtils.startsWith(superimposePath, sourcePath + "/")) {
                 valid = false;
             }
         }
 
         // register valid superimposing
         if (valid) {
-            final SuperimposingResourceProvider srp = new SuperimposingResourceProvider(superimposePath, targetPath, overlayable);
+            final SuperimposingResourceProvider srp = new SuperimposingResourceProvider(superimposePath, sourcePath, overlayable);
             final SuperimposingResourceProvider oldSrp = superimposingProviders.put(superimposePath, srp);
 
             // unregister in case there was a provider registered before
@@ -202,7 +202,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
                 log.debug("Unregistering resource provider {}.", superimposePath);
                 oldSrp.unregisterService();
             }
-            log.warn("Superimposing definition '{}' pointing to '{}' is invalid.", superimposePath, targetPath);
+            log.warn("Superimposing definition '{}' pointing to '{}' is invalid.", superimposePath, sourcePath);
         }
 
         return false;
@@ -306,7 +306,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
                 } else if (event.getType() == Event.NODE_REMOVED && superimposingProviders.containsKey(path)) {
                     nodeRemoved = true;
                     actions.put(path, false);
-                } else if (StringUtils.equals(name, PROP_SUPERIMPOSE_TARGET)
+                } else if (StringUtils.equals(name, PROP_SUPERIMPOSE_SOURCE_PATH)
                         || StringUtils.equals(name, PROP_SUPERIMPOSE_REGISTER_PARENT)
                         || StringUtils.equals(name, PROP_SUPERIMPOSE_OVERLAYABLE)) {
                     final String nodePath = ResourceUtil.getParent(path);

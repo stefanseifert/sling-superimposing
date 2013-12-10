@@ -26,7 +26,7 @@
 
     // mandatory property pointing to an absolute or relative
     // repository path, which this node should superimpose
-  - sling:superimposeTarget (string) mandatory
+  - sling:superimposeSourcePath (string) mandatory
 
     // optional property indicating if the node itself is used
     // as root for the superimposing definition (default), of it it's parent should

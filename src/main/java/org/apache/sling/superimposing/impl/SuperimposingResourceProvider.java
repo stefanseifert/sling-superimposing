@@ -47,21 +47,21 @@ public class SuperimposingResourceProvider implements ResourceProvider {
 
     private final String rootPath;
     private final String rootPrefix;
-    private final String targetPath;
+    private final String sourcePath;
     private final String targetPrefix;
     private final boolean overlayable;
     private final String toString;
     private ServiceRegistration registration;
 
-    SuperimposingResourceProvider(String rootPath, String targetPath, boolean overlayable) {
+    SuperimposingResourceProvider(String rootPath, String sourcePath, boolean overlayable) {
         this.rootPath = rootPath;
         this.rootPrefix = rootPath.concat("/");
-        this.targetPath = targetPath;
-        this.targetPrefix = targetPath.concat("/");
+        this.sourcePath = sourcePath;
+        this.targetPrefix = sourcePath.concat("/");
         this.overlayable = overlayable;
         StringBuilder sb = new StringBuilder(getClass().getSimpleName());
         sb.append(" [path=").append(rootPath).append(", ");
-        sb.append("target=").append(targetPath).append(", ");
+        sb.append("sourcePath=").append(sourcePath).append(", ");
         sb.append("overlayable=").append(overlayable).append("]");
         this.toString = sb.toString();
     }
@@ -174,7 +174,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     static String mapPathWithoutOverlay(SuperimposingResourceProvider provider, ResourceResolver resolver, String path) {
         final String mappedPath;
         if (StringUtils.equals(path, provider.rootPath)) {
-            mappedPath = provider.targetPath;
+            mappedPath = provider.sourcePath;
         } else if (StringUtils.startsWith(path, provider.rootPrefix)) {
             mappedPath = StringUtils.replaceOnce(path, provider.rootPrefix, provider.targetPrefix);
         } else {
@@ -194,7 +194,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
         final String mappedPath;
         if (path.startsWith(provider.targetPrefix)) {
             mappedPath = StringUtils.replaceOnce(path, provider.targetPrefix, provider.rootPrefix);
-        } else if (path.equals(provider.targetPath)) {
+        } else if (path.equals(provider.sourcePath)) {
             mappedPath = provider.rootPath;
         } else {
             mappedPath = null;
@@ -233,8 +233,8 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     /**
      * @return Target path (destination path)
      */
-    public String getTargetPath() {
-        return targetPath;
+    public String getSourcePath() {
+        return sourcePath;
     }
 
     /**
@@ -248,7 +248,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     public boolean equals(Object o) {
         if (o instanceof SuperimposingResourceProvider) {
             final SuperimposingResourceProvider srp = (SuperimposingResourceProvider) o;
-            return this.targetPath.equals(srp.targetPath) && this.overlayable == srp.overlayable;
+            return this.sourcePath.equals(srp.sourcePath) && this.overlayable == srp.overlayable;
 
         }
         return false;
