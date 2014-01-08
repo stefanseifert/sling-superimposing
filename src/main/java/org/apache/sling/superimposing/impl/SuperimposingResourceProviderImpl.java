@@ -26,9 +26,9 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceProvider;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceWrapper;
+import org.apache.sling.superimposing.SuperimposingResourceProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -39,9 +39,9 @@ import org.slf4j.LoggerFactory;
  * Superimposing resource provider.
  * Maps a single source path to the target root path, with or without overlay depending on configuration.
  */
-public class SuperimposingResourceProvider implements ResourceProvider {
+public class SuperimposingResourceProviderImpl implements SuperimposingResourceProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(SuperimposingResourceProvider.class);
+    private static final Logger log = LoggerFactory.getLogger(SuperimposingResourceProviderImpl.class);
 
     private final String rootPath;
     private final String rootPrefix;
@@ -51,7 +51,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     private final String toString;
     private ServiceRegistration registration;
 
-    SuperimposingResourceProvider(String rootPath, String sourcePath, boolean overlayable) {
+    SuperimposingResourceProviderImpl(String rootPath, String sourcePath, boolean overlayable) {
         this.rootPath = rootPath;
         this.rootPrefix = rootPath.concat("/");
         this.sourcePath = sourcePath;
@@ -117,7 +117,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPath(SuperimposingResourceProvider provider, ResourceResolver resolver, String path) {
+    static String mapPath(SuperimposingResourceProviderImpl provider, ResourceResolver resolver, String path) {
         if (provider.overlayable) {
             return mapPathWithOverlay(provider, resolver, path);
         }
@@ -133,7 +133,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPathWithOverlay(SuperimposingResourceProvider provider, ResourceResolver resolver, String path) {
+    static String mapPathWithOverlay(SuperimposingResourceProviderImpl provider, ResourceResolver resolver, String path) {
         if (StringUtils.equals(path, provider.rootPath)) {
             // Superimposing root path cannot be overlayed
             return mapPathWithoutOverlay(provider, resolver, path);
@@ -169,7 +169,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
-    static String mapPathWithoutOverlay(SuperimposingResourceProvider provider, ResourceResolver resolver, String path) {
+    static String mapPathWithoutOverlay(SuperimposingResourceProviderImpl provider, ResourceResolver resolver, String path) {
         final String mappedPath;
         if (StringUtils.equals(path, provider.rootPath)) {
             mappedPath = provider.sourcePath;
@@ -188,7 +188,7 @@ public class SuperimposingResourceProvider implements ResourceProvider {
      * @param path
      * @return
      */
-    static String reverseMapPath(SuperimposingResourceProvider provider, String path) {
+    static String reverseMapPath(SuperimposingResourceProviderImpl provider, String path) {
         final String mappedPath;
         if (path.startsWith(provider.sourcePathPrefix)) {
             mappedPath = StringUtils.replaceOnce(path, provider.sourcePathPrefix, provider.rootPrefix);
@@ -244,8 +244,8 @@ public class SuperimposingResourceProvider implements ResourceProvider {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof SuperimposingResourceProvider) {
-            final SuperimposingResourceProvider srp = (SuperimposingResourceProvider)o;
+        if (o instanceof SuperimposingResourceProviderImpl) {
+            final SuperimposingResourceProviderImpl srp = (SuperimposingResourceProviderImpl)o;
             return this.rootPath.equals(srp.rootPath) && this.sourcePath.equals(srp.sourcePath) && this.overlayable == srp.overlayable;
 
         }

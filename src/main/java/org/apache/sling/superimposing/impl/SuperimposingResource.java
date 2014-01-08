@@ -22,7 +22,7 @@ import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.resource.ResourceResolver;
 
 /**
- * {@link SuperimposingResource} is provided by {@link SuperimposingResourceProvider} instances.
+ * {@link SuperimposingResource} is provided by {@link SuperimposingResourceProviderImpl} instances.
  * It delegates to an existing underlying resource but overrides the getPath() method to point to the superimposed path.
  */
 public class SuperimposingResource extends AbstractResource implements Resource {

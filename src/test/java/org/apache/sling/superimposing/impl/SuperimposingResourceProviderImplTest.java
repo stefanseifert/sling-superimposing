@@ -45,10 +45,10 @@ import org.osgi.framework.ServiceRegistration;
 
 @SuppressWarnings("javadoc")
 @RunWith(MockitoJUnitRunner.class)
-public class SuperimposingResourceProviderTest {
+public class SuperimposingResourceProviderImplTest {
     
-    private SuperimposingResourceProvider underTest;
-    private SuperimposingResourceProvider underTestOverlay;
+    private SuperimposingResourceProviderImpl underTest;
+    private SuperimposingResourceProviderImpl underTestOverlay;
     
     @Mock
     private BundleContext bundleContext;
@@ -72,12 +72,12 @@ public class SuperimposingResourceProviderTest {
     @Before
     public void setUp() {
         // setup a superimposing resource provider without overlay
-        underTest = new SuperimposingResourceProvider(SUPERIMPOSED_PATH, ORIGINAL_PATH, false);
+        underTest = new SuperimposingResourceProviderImpl(SUPERIMPOSED_PATH, ORIGINAL_PATH, false);
         when(bundleContext.registerService(anyString(), eq(underTest), any(Dictionary.class))).thenReturn(serviceRegistration);
         underTest.registerService(bundleContext);
         
         // and one with overlay
-        underTestOverlay = new SuperimposingResourceProvider(SUPERIMPOSED_PATH, ORIGINAL_PATH, true);
+        underTestOverlay = new SuperimposingResourceProviderImpl(SUPERIMPOSED_PATH, ORIGINAL_PATH, true);
         when(bundleContext.registerService(anyString(), eq(underTestOverlay), any(Dictionary.class))).thenReturn(serviceRegistrationOverlay);
         underTestOverlay.registerService(bundleContext);
 

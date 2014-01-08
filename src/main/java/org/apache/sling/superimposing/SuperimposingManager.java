@@ -20,37 +20,13 @@ package org.apache.sling.superimposing;
 
 import java.util.Map;
 
-import org.apache.sling.superimposing.impl.SuperimposingResourceProvider;
+import org.apache.sling.superimposing.impl.SuperimposingResourceProviderImpl;
 
 /**
- * Manages the resource registrations for the {@link SuperimposingResourceProvider}.
+ * Manages the resource registrations for the {@link SuperimposingResourceProviderImpl}.
  * Provides read-only access to all registered providers.
  */
 public interface SuperimposingManager {
-
-    /**
-     * Mixin for superimposing.
-     */
-    String MIXIN_SUPERIMPOSE = "sling:Superimpose";
-
-    /**
-     * Property pointing to an absolute or relative repository path, which this superimpose definition points to.
-     */
-    String PROP_SUPERIMPOSE_SOURCE_PATH = "sling:superimposeSourcePath";
-
-    /**
-     * Property indicating if the node itself is used as root for the superimpose definition (default),
-     * of it it's parent should be used. The latter is useful in a Page/PageContent scenario
-     * where the mixin cannot be added on the parent node itself.
-     */
-    String PROP_SUPERIMPOSE_REGISTER_PARENT = "sling:superimposeRegisterParent";
-
-    /**
-     * Property indicating whether this superimposing definition allows the superimposed content
-     * to be overlayed by real nodes created below the superimposing root node.
-     * Default value is false.
-     */
-    String PROP_SUPERIMPOSE_OVERLAYABLE = "sling:superimposeOverlayable";
 
     /**
      * @return true if superimposing mode is enabled

@@ -42,14 +42,14 @@ public class SuperimposingResourceIteratorTest {
     @Mock
     private Resource originalResource2;
     
-    private SuperimposingResourceProvider superimposingResourceProvider;
+    private SuperimposingResourceProviderImpl superimposingResourceProvider;
     
     private static final String ORIGINAL_PATH = "/root/path1";
     private static final String SUPERIMPOSED_PATH = "/root/path2";
     
     @Before
     public void setUp() {
-        this.superimposingResourceProvider = new SuperimposingResourceProvider(SUPERIMPOSED_PATH, ORIGINAL_PATH, false);
+        this.superimposingResourceProvider = new SuperimposingResourceProviderImpl(SUPERIMPOSED_PATH, ORIGINAL_PATH, false);
         when(this.originalResource1.getPath()).thenReturn(ORIGINAL_PATH + "/node1");
         when(this.originalResource2.getPath()).thenReturn(ORIGINAL_PATH + "/node2");
     }

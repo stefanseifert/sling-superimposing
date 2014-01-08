@@ -27,12 +27,12 @@ import java.util.NoSuchElementException;
  */
 public class SuperimposingResourceIterator implements Iterator<Resource> {
 
-    private final SuperimposingResourceProvider superimposingProvider;
+    private final SuperimposingResourceProviderImpl superimposingProvider;
     private final Iterator<Resource> decoratee;
 
     private Resource next;
 
-    SuperimposingResourceIterator(SuperimposingResourceProvider superimposingProvider, Iterator<Resource> decoratee) {
+    SuperimposingResourceIterator(SuperimposingResourceProviderImpl superimposingProvider, Iterator<Resource> decoratee) {
         this.superimposingProvider = superimposingProvider;
         this.decoratee = decoratee;
         seek();
@@ -42,7 +42,7 @@ public class SuperimposingResourceIterator implements Iterator<Resource> {
         next = null;
         while (next == null && decoratee.hasNext()) {
             final Resource resource = decoratee.next();
-            final String superimposingPath = SuperimposingResourceProvider.reverseMapPath(superimposingProvider, resource.getPath());
+            final String superimposingPath = SuperimposingResourceProviderImpl.reverseMapPath(superimposingProvider, resource.getPath());
             if (null != superimposingPath) {
                 next = new SuperimposingResource(resource, superimposingPath);
             }
