@@ -19,7 +19,7 @@
 package org.apache.sling.superimposing.impl;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

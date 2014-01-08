@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Superimposing resource provider.
+ * Maps a single source path to the target root path, with or without overlay depending on configuration.
  */
 public class SuperimposingResourceProvider implements ResourceProvider {
 
@@ -111,8 +112,8 @@ public class SuperimposingResourceProvider implements ResourceProvider {
 
     /**
      * Maps a path below the superimposing root to the target resource's path.
-     * @param provider Superimposing resource provicer
-     * @param resolver Resourcer resolver
+     * @param provider Superimposing resource provider
+     * @param resolver Resource resolver
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
@@ -127,8 +128,8 @@ public class SuperimposingResourceProvider implements ResourceProvider {
 
     /**
      * Maps a path below the superimposing root to the target resource's path with check for overlaying.
-     * @param provider Superimposing resource provicer
-     * @param resolver Resourcer resolver
+     * @param provider Superimposing resource provider
+     * @param resolver Resource resolver
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
@@ -163,8 +164,8 @@ public class SuperimposingResourceProvider implements ResourceProvider {
 
     /**
      * Maps a path below the superimposing root to the target resource's path without check for overlaying.
-     * @param provider Superimposing resource provicer
-     * @param resolver Resourcer resolver
+     * @param provider Superimposing resource provider
+     * @param resolver Resource resolver
      * @param path Path to map
      * @return Mapped path or null if no mapping available
      */
@@ -244,8 +245,8 @@ public class SuperimposingResourceProvider implements ResourceProvider {
     @Override
     public boolean equals(Object o) {
         if (o instanceof SuperimposingResourceProvider) {
-            final SuperimposingResourceProvider srp = (SuperimposingResourceProvider) o;
-            return this.sourcePath.equals(srp.sourcePath) && this.overlayable == srp.overlayable;
+            final SuperimposingResourceProvider srp = (SuperimposingResourceProvider)o;
+            return this.rootPath.equals(srp.rootPath) && this.sourcePath.equals(srp.sourcePath) && this.overlayable == srp.overlayable;
 
         }
         return false;

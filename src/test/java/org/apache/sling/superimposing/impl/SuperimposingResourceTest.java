@@ -18,10 +18,8 @@
  */
 package org.apache.sling.superimposing.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import org.apache.sling.api.adapter.AdapterManager;
 import org.apache.sling.api.adapter.SlingAdaptable;
