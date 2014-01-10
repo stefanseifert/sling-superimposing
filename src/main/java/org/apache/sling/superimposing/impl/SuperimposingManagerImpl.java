@@ -86,7 +86,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     /**
      * Map for holding the superimposing mappings, with the superimpose path as key and the providers as values
      */
-    private ConcurrentMap<String, SuperimposingResourceProvider> superimposingProviders = new ConcurrentHashMap<String, SuperimposingResourceProvider>();
+    private ConcurrentMap<String, SuperimposingResourceProviderImpl> superimposingProviders = new ConcurrentHashMap<String, SuperimposingResourceProviderImpl>();
 
     @Reference
     private ResourceResolverFactory resolverFactory;
@@ -185,16 +185,16 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
 
         // register valid superimposing
         if (valid) {
-            final SuperimposingResourceProvider srp = new SuperimposingResourceProviderImpl(superimposePath, sourcePath, overlayable);
-            final SuperimposingResourceProvider oldSrp = superimposingProviders.put(superimposePath, srp);
+            final SuperimposingResourceProviderImpl srp = new SuperimposingResourceProviderImpl(superimposePath, sourcePath, overlayable);
+            final SuperimposingResourceProviderImpl oldSrp = superimposingProviders.put(superimposePath, srp);
 
             // unregister in case there was a provider registered before
             if (!srp.equals(oldSrp)) {
                 log.debug("(Re-)registering resource provider {}.", superimposePath);
                 if (null != oldSrp) {
-                    ((SuperimposingResourceProviderImpl)oldSrp).unregisterService();
+                    oldSrp.unregisterService();
                 }
-                ((SuperimposingResourceProviderImpl)srp).registerService(bundleContext);
+                srp.registerService(bundleContext);
                 return true;
             } else {
                 log.debug("Skipped re-registering resource provider {} because there were no relevant changes.", superimposePath);
@@ -203,10 +203,10 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
 
         // otherwise remove previous superimposing resource provider if new superimposing definition is not valid
         else {
-            final SuperimposingResourceProvider oldSrp = superimposingProviders.remove(superimposePath);
+            final SuperimposingResourceProviderImpl oldSrp = superimposingProviders.remove(superimposePath);
             if (null != oldSrp) {
                 log.debug("Unregistering resource provider {}.", superimposePath);
-                ((SuperimposingResourceProviderImpl)oldSrp).unregisterService();
+                oldSrp.unregisterService();
             }
             log.warn("Superimposing definition '{}' pointing to '{}' is invalid.", superimposePath, sourcePath);
         }
@@ -222,9 +222,9 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     }
 
     private void unregisterProvider(String path) {
-        final SuperimposingResourceProvider srp = superimposingProviders.remove(path);
+        final SuperimposingResourceProviderImpl srp = superimposingProviders.remove(path);
         if (null != srp) {
-            ((SuperimposingResourceProviderImpl)srp).unregisterService();
+            srp.unregisterService();
         }
     }
 
@@ -249,7 +249,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             bundleContext = ctx.getBundleContext();
             resolver = resolverFactory.getAdministrativeResourceResolver(null);
 
-            // Watch for events on the root to register/deregister symlinks at runtime
+            // Watch for events on the root to register/deregister superimposings at runtime
             final Session session = resolver.adaptTo(Session.class);
             if (session!=null) {
                 session.getWorkspace().getObservationManager().addEventListener(
@@ -293,8 +293,8 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             }
 
             // de-register all superimpsing resource providers
-            for (final SuperimposingResourceProvider srp : superimposingProviders.values()) {
-                ((SuperimposingResourceProviderImpl)srp).unregisterService();
+            for (final SuperimposingResourceProviderImpl srp : superimposingProviders.values()) {
+                srp.unregisterService();
             }
 
         } finally {
@@ -338,7 +338,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
 
             // execute all collected actions (having this outside the above
             // loop prevents repeated registrations within one transaction
-            // but allows for several symlinks to be added within a single
+            // but allows for several superimposings to be added within a single
             // transaction)
             for (Map.Entry<String, Boolean> action : actions.entrySet()) {
                 if (action.getValue()) {
@@ -349,7 +349,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             }
 
             if (nodeAdded && nodeRemoved) {
-                // maybe a symlink was moved, reregister all symlinks
+                // maybe a superimposing was moved, re-register all superimposings
                 // (existing ones will be skipped)
                 registerAllSuperimposings();
             }
@@ -369,7 +369,8 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
      * @return Immutable map with all superimposing resource providers currently registered
      */
     public Map<String, SuperimposingResourceProvider> getRegisteredProviders() {
-        return Collections.unmodifiableMap(superimposingProviders);
+        Map<String, SuperimposingResourceProvider> mapcopy = new HashMap<String, SuperimposingResourceProvider>(superimposingProviders);
+        return Collections.unmodifiableMap(mapcopy);
     }
     
     SuperimposingManagerImpl withResourceResolverFactory(ResourceResolverFactory resolverFactory) {

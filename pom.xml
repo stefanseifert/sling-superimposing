@@ -183,15 +183,11 @@
 
     </dependencies>
 
-<!-- *** TODO: remove this again when commiting to apache *** -->
-    <!-- scm -->
+<!-- *** TODO: remove this again when committing to apache *** -->
     <scm>
-        <connection>scm:svn:https://svn.pvtool.org/svn/day_cqstone/trunk/sling/symlinks</connection>
-        <developerConnection>scm:svn:https://svn.pvtool.org/svn/day_cqstone/trunk/sling/symlinks</developerConnection>
-        <url>https://svn.pvtool.org/svn/day_cqstone/trunk/sling/symlinks</url>
+        <url>https://github.com/stefanseifert/sling-superimposing</url>
     </scm>
   
-    <!-- distribution management -->
     <distributionManagement>
         <repository>
             <id>cqstone</id>
@@ -202,6 +198,6 @@
             <url>https://www.pvtool.de/nexus/content/repositories/cqstone-snapshots</url>
         </snapshotRepository>
     </distributionManagement>
-<!-- *** TODO: remove this again when commiting to apache *** -->
+<!-- *** TODO: remove this again when committing to apache *** -->
 
 </project>
