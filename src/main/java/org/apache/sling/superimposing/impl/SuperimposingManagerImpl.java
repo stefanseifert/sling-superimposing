@@ -80,7 +80,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             + "Query syntax is depending on underlying resource provdider implementation. Prepend the query with query syntax name separated by \"|\".",
             value={SuperimposingManagerImpl.FINDALLQUERIES_DEFAULT}, unbounded=PropertyUnbounded.ARRAY)
     static final String FINDALLQUERIES_PROPERTY = "findAllQueries";
-    static final String FINDALLQUERIES_DEFAULT = "JCR-SQL2|SELECT * FROM '" + MIXIN_SUPERIMPOSE + "'";
+    static final String FINDALLQUERIES_DEFAULT = "JCR-SQL2|SELECT * FROM [" + MIXIN_SUPERIMPOSE + "] WHERE ISDESCENDANTNODE('/content')";
     private String[] findAllQueries;
     
     @Property(label = "Obervation paths", description = "List of paths that should be monitored for resource events to detect superimposing content nodes.",
