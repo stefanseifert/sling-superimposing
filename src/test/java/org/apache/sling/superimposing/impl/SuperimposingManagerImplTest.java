@@ -36,6 +36,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.observation.Event;
 import javax.jcr.observation.EventIterator;
+import javax.jcr.observation.EventListener;
 
 import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
@@ -60,7 +61,7 @@ import org.osgi.service.component.ComponentContext;
 @SuppressWarnings("javadoc")
 @RunWith(MockitoJUnitRunner.class)
 public class SuperimposingManagerImplTest {
-    
+
     @Mock
     private Dictionary<String, Object> componentContextProperties;
     @Mock
@@ -74,17 +75,19 @@ public class SuperimposingManagerImplTest {
     @Mock(answer=Answers.RETURNS_DEEP_STUBS)
     private Session session;
     private List<ServiceRegistration> serviceRegistrations = new ArrayList<ServiceRegistration>();
-    
+
     private SuperimposingManagerImpl underTest;
 
     private static final String ORIGINAL_PATH = "/root/path1";
     private static final String SUPERIMPOSED_PATH = "/root/path2";
-    
+    private static final String OBSERVATION_PATH = "/root";
+
     @SuppressWarnings("unchecked")
     @Before
     public void setUp() throws LoginException {
         when(componentContext.getBundleContext()).thenReturn(bundleContext);
         when(componentContext.getProperties()).thenReturn(componentContextProperties);
+        when(componentContextProperties.get(SuperimposingManagerImpl.OBSERVATION_PATHS_PROPERTY)).thenReturn(new String[] { OBSERVATION_PATH });
         when(resourceResolverFactory.getAdministrativeResourceResolver(any(Map.class))).thenReturn(resourceResolver);
         when(resourceResolver.adaptTo(Session.class)).thenReturn(session);
         
@@ -102,7 +105,7 @@ public class SuperimposingManagerImplTest {
             }
         });
     }
-    
+
     private void initialize(boolean enabled) throws InterruptedException, LoginException, RepositoryException {
         when(componentContextProperties.get(SuperimposingManagerImpl.ENABLED_PROPERTY)).thenReturn(enabled);
 
@@ -111,7 +114,7 @@ public class SuperimposingManagerImplTest {
         
         if (underTest.isEnabled()) {
             // verify observation registration
-            verify(session.getWorkspace().getObservationManager()).addEventListener(eq(underTest), anyInt(), anyString(), anyBoolean(), any(String[].class), any(String[].class), anyBoolean());
+            verify(session.getWorkspace().getObservationManager()).addEventListener(any(EventListener.class), anyInt(), eq(OBSERVATION_PATH), anyBoolean(), any(String[].class), any(String[].class), anyBoolean());
             // wait until separate initialization thread has finished
             while (!underTest.initialization.isDone()) {
                 Thread.sleep(10);
@@ -125,7 +128,7 @@ public class SuperimposingManagerImplTest {
         
         if (underTest.isEnabled()) {
             // verify observation and resource resolver are terminated correctly
-            verify(session.getWorkspace().getObservationManager()).removeEventListener(underTest);
+            verify(session.getWorkspace().getObservationManager()).removeEventListener(any(EventListener.class));
             verify(resourceResolver).close();
         }
 
@@ -146,7 +149,7 @@ public class SuperimposingManagerImplTest {
         when(resourceResolver.getResource(superimposedPath)).thenReturn(resource);
         return resource;
     }
-    
+
     private void moveSuperimposedResource(Resource resource, String newPath) {
         String oldPath = resource.getPath();
         when(resource.getPath()).thenReturn(newPath);
@@ -162,7 +165,7 @@ public class SuperimposingManagerImplTest {
         verifyZeroInteractions(resourceResolverFactory);
         verifyZeroInteractions(bundleContext);
     }
-    
+
     @Test
     public void testFindAllSuperimposings() throws InterruptedException, LoginException, RepositoryException {
         // prepare a query that returns one existing superimposed resource
@@ -185,7 +188,7 @@ public class SuperimposingManagerImplTest {
         assertFalse(provider.isOverlayable());
         verify(bundleContext).registerService(anyString(), same(provider), any(Dictionary.class));
     }
-    
+
     private EventIterator prepareNodeCreateEvent(Resource pResource) throws RepositoryException {
         String resourcePath = pResource.getPath();
         
@@ -202,7 +205,7 @@ public class SuperimposingManagerImplTest {
         when(eventIterator.nextEvent()).thenReturn(nodeEvent, propertyEvent);
         return eventIterator;
     }
-        
+
     private EventIterator prepareNodeChangeEvent(Resource pResource) throws RepositoryException {
         String resourcePath = pResource.getPath();
         
@@ -215,7 +218,7 @@ public class SuperimposingManagerImplTest {
         when(eventIterator.nextEvent()).thenReturn(propertyEvent);
         return eventIterator;
     }
-        
+
     private EventIterator prepareNodeRemoveEvent(Resource pResource) throws RepositoryException {
         String resourcePath = pResource.getPath();
         
@@ -228,7 +231,7 @@ public class SuperimposingManagerImplTest {
         when(eventIterator.nextEvent()).thenReturn(nodeEvent);
         return eventIterator;
     }
-        
+
     private EventIterator prepareNodeMoveEvent(Resource pResource, String pOldPath) throws RepositoryException {
         String resourcePath = pResource.getPath();
         
@@ -245,7 +248,7 @@ public class SuperimposingManagerImplTest {
         when(eventIterator.nextEvent()).thenReturn(nodeRemoveEvent, nodeCreateEvent);
         return eventIterator;
     }
-        
+
     @Test
     public void testSuperimposedResourceCreateUpdateRemove() throws InterruptedException, LoginException, RepositoryException {
         initialize(true);

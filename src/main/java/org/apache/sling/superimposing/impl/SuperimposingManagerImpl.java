@@ -83,6 +83,13 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     static final String FINDALLQUERIES_DEFAULT = "JCR-SQL2|SELECT * FROM '" + MIXIN_SUPERIMPOSE + "'";
     private String[] findAllQueries;
     
+    @Property(label = "Obervation paths", description = "List of paths that should be monitored for resource events to detect superimposing content nodes.",
+            value={SuperimposingManagerImpl.OBSERVATION_PATHS_DEFAULT}, unbounded=PropertyUnbounded.ARRAY)
+    static final String OBSERVATION_PATHS_PROPERTY = "obervationPaths";
+    static final String OBSERVATION_PATHS_DEFAULT = "/content";
+    private String[] obervationPaths;
+    private EventListener[] observationEventListeners;
+    
     /**
      * Map for holding the superimposing mappings, with the superimpose path as key and the providers as values
      */
@@ -244,22 +251,32 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
         
         // get "find all" queries
         this.findAllQueries = PropertiesUtil.toStringArray(props.get(FINDALLQUERIES_PROPERTY), new String[] { FINDALLQUERIES_DEFAULT });
+        this.obervationPaths = PropertiesUtil.toStringArray(props.get(OBSERVATION_PATHS_PROPERTY), new String[] { OBSERVATION_PATHS_DEFAULT });
         
         if (null == resolver) {
             bundleContext = ctx.getBundleContext();
             resolver = resolverFactory.getAdministrativeResourceResolver(null);
 
             // Watch for events on the root to register/deregister superimposings at runtime
+            // For each observed path create an event listener object which redirects the event to the main class
             final Session session = resolver.adaptTo(Session.class);
             if (session!=null) {
-                session.getWorkspace().getObservationManager().addEventListener(
-                        this,
-                        Event.NODE_ADDED | Event.NODE_REMOVED | Event.PROPERTY_ADDED | Event.PROPERTY_CHANGED | Event.PROPERTY_REMOVED,
-                        "/", // whole repository
-                        true, // isDeep
-                        null, // uuids
-                        null, // node types
-                        true); // noLocal
+                this.observationEventListeners = new EventListener[this.obervationPaths.length];
+                for (int i=0; i<this.obervationPaths.length; i++) {
+                    this.observationEventListeners[i] = new EventListener() {
+                        public void onEvent(EventIterator events) {
+                            SuperimposingManagerImpl.this.onEvent(events);
+                        }
+                    };
+                    session.getWorkspace().getObservationManager().addEventListener(
+                            this.observationEventListeners[i],
+                            Event.NODE_ADDED | Event.NODE_REMOVED | Event.PROPERTY_ADDED | Event.PROPERTY_CHANGED | Event.PROPERTY_REMOVED,
+                            this.obervationPaths[i], // absolute path
+                            true, // isDeep
+                            null, // uuids
+                            null, // node types
+                            true); // noLocal                    
+                }
             }
 
             // register all superimposing definitions that already exist
@@ -287,8 +304,10 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             // de-register JCR observation
             if (resolver!=null) {
                 final Session session = resolver.adaptTo(Session.class);
-                if (session!=null) {
-                    session.getWorkspace().getObservationManager().removeEventListener(this);
+                if (session!=null && this.observationEventListeners!=null) {
+                    for (EventListener eventListener : this.observationEventListeners) {
+                        session.getWorkspace().getObservationManager().removeEventListener(eventListener);
+                    }
                 }
             }
 
