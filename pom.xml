@@ -191,7 +191,6 @@
         <url>https://svn.pvtool.org/svn/day_cqstone/trunk/sling/symlinks</url>
     </scm>
   
-<!-- *** TODO: remove this again when commiting to apache *** -->
     <!-- distribution management -->
     <distributionManagement>
         <repository>
@@ -203,5 +202,6 @@
             <url>https://www.pvtool.de/nexus/content/repositories/cqstone-snapshots</url>
         </snapshotRepository>
     </distributionManagement>
+<!-- *** TODO: remove this again when commiting to apache *** -->
 
 </project>

@@ -90,9 +90,10 @@ public class SuperimposingManagerImplTest {
         underTest = new SuperimposingManagerImpl().withResourceResolverFactory(resourceResolverFactory);
         underTest.activate(componentContext);
         
-        if (enabled) {
+        if (underTest.isEnabled()) {
+            // verify observation registration
             verify(session.getWorkspace().getObservationManager()).addEventListener(eq(underTest), anyInt(), anyString(), anyBoolean(), any(String[].class), any(String[].class), anyBoolean());
-            
+            // wait until separate initialization thread has finished
             while (!underTest.initialization.isDone()) {
                 Thread.sleep(10);
             }
@@ -100,8 +101,14 @@ public class SuperimposingManagerImplTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws RepositoryException {
         underTest.deactivate(componentContext);
+        
+        if (underTest.isEnabled()) {
+            // verify observation and resourcer resolver are terminated correctly
+            verify(session.getWorkspace().getObservationManager()).removeEventListener(underTest);
+            verify(resourceResolver).close();
+        }
     }
 
     private Resource prepareSuperimposingResource(String superimposedPath, String sourcePath, boolean registerParent, boolean overlayable) {
@@ -117,6 +124,7 @@ public class SuperimposingManagerImplTest {
 
     @Test
     public void testFindAllSuperimposings() throws InterruptedException, LoginException, RepositoryException {
+        // prepare a query that returns one existing superimposed resource
         when(componentContextProperties.get(SuperimposingManagerImpl.FINDALLQUERIES_PROPERTY)).thenReturn("syntax|query");
         when(resourceResolver.findResources("query", "syntax")).then(new Answer<Iterator<Resource>>() {
             public Iterator<Resource> answer(InvocationOnMock invocation) {
@@ -127,12 +135,18 @@ public class SuperimposingManagerImplTest {
         });
         initialize(true);
         
+        // ensure the superimposed resource is detected and registered
         Map<String, SuperimposingResourceProvider> providers = underTest.getRegisteredProviders();
         assertEquals(1, providers.size());
         SuperimposingResourceProvider provider = providers.values().iterator().next();
         assertEquals(SUPERIMPOSED_PATH, provider.getRootPath());
         assertEquals(ORIGINAL_PATH, provider.getSourcePath());
         assertFalse(provider.isOverlayable());
+    }
+    
+    @Test
+    public void testActivateDeactivateDisabled() throws InterruptedException, LoginException, RepositoryException {
+        initialize(false);
     }
     
 }

@@ -277,13 +277,22 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     }
 
     @Deactivate
-    protected synchronized void deactivate(final ComponentContext ctx) {
+    protected synchronized void deactivate(final ComponentContext ctx) throws RepositoryException {
         try {
             // make sure initialization has finished
             if (null != initialization && !initialization.isDone()) {
                 initialization.cancel(/* myInterruptIfRunning */ true);
             }
 
+            // de-register JCR observation
+            if (resolver!=null) {
+                final Session session = resolver.adaptTo(Session.class);
+                if (session!=null) {
+                    session.getWorkspace().getObservationManager().removeEventListener(this);
+                }
+            }
+
+            // de-register all superimpsing resource providers
             for (final SuperimposingResourceProvider srp : superimposingProviders.values()) {
                 ((SuperimposingResourceProviderImpl)srp).unregisterService();
             }
