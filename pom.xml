@@ -174,21 +174,4 @@
 
     </dependencies>
 
-<!-- *** TODO: remove this again when committing to apache *** -->
-    <scm>
-        <url>https://github.com/stefanseifert/sling-superimposing</url>
-    </scm>
-  
-    <distributionManagement>
-        <repository>
-            <id>cqstone</id>
-            <url>https://www.pvtool.de/nexus/content/repositories/cqstone</url>
-        </repository>
-        <snapshotRepository>
-            <id>cqstone-snapshots</id>
-            <url>https://www.pvtool.de/nexus/content/repositories/cqstone-snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-<!-- *** TODO: remove this again when committing to apache *** -->
-
 </project>
