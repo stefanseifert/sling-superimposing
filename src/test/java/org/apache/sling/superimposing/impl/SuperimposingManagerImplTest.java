@@ -32,6 +32,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.observation.Event;
@@ -42,6 +44,7 @@ import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ResourceUtil;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.wrappers.ValueMapDecorator;
 import org.apache.sling.superimposing.SuperimposingResourceProvider;
@@ -104,6 +107,55 @@ public class SuperimposingManagerImplTest {
                 return mockRegistration;
             }
         });
+
+        // simulate absolute path access to properties via session object
+        try {
+            when(session.itemExists(anyString())).thenAnswer(new Answer<Boolean>() {
+                public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                    final String absolutePath = (String)invocation.getArguments()[0];
+                    final String nodePath = ResourceUtil.getParent(absolutePath);
+                    final String propertyName = ResourceUtil.getName(absolutePath);
+                    Resource resource = resourceResolver.getResource(nodePath);
+                    if (resource!=null) {
+                        ValueMap props = resource.adaptTo(ValueMap.class);
+                        return props.containsKey(propertyName);
+                    }
+                    else {
+                        return false;
+                    }
+                }
+            });
+            when(session.getProperty(anyString())).thenAnswer(new Answer<Property>() {
+                public Property answer(InvocationOnMock invocation) throws Throwable {
+                    final String absolutePath = (String)invocation.getArguments()[0];
+                    final String nodePath = ResourceUtil.getParent(absolutePath);
+                    final String propertyName = ResourceUtil.getName(absolutePath);
+                    Resource resource = resourceResolver.getResource(nodePath);
+                    if (resource!=null) {
+                        ValueMap props = resource.adaptTo(ValueMap.class);
+                        Object value = props.get(propertyName);
+                        if (value==null) {
+                            throw new PathNotFoundException(); 
+                        }
+                        Property prop = mock(Property.class);
+                        when(prop.getName()).thenReturn(propertyName);
+                        if (value instanceof String) {
+                            when(prop.getString()).thenReturn((String)value);
+                        }
+                        else if (value instanceof Boolean) {
+                            when(prop.getBoolean()).thenReturn((Boolean)value);
+                        }
+                        return prop;
+                    }
+                    else {
+                        throw new PathNotFoundException(); 
+                    }
+                }
+            });
+        }
+        catch (RepositoryException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     private void initialize(boolean enabled) throws InterruptedException, LoginException, RepositoryException {

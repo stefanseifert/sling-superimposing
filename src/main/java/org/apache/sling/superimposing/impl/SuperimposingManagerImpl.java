@@ -52,7 +52,6 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.resource.ResourceUtil;
-import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.apache.sling.superimposing.SuperimposingManager;
 import org.apache.sling.superimposing.SuperimposingResourceProvider;
@@ -166,11 +165,12 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
      * @throws RepositoryException
      */
     private boolean registerProvider(Resource superimposingResource) {
-        ValueMap props = ResourceUtil.getValueMap(superimposingResource);
         String superimposePath = superimposingResource.getPath();
-        final String sourcePath = props.get(PROP_SUPERIMPOSE_SOURCE_PATH, String.class);
-        final boolean registerParent = props.get(PROP_SUPERIMPOSE_REGISTER_PARENT, false);
-        final boolean overlayable = props.get(PROP_SUPERIMPOSE_OVERLAYABLE, false);
+        
+        // use JCR API to get properties from superimposing resource to make sure superimposing does not delivery values from source node
+        final String sourcePath = getJcrStringProperty(superimposePath, PROP_SUPERIMPOSE_SOURCE_PATH);
+        final boolean registerParent = getJcrBooleanProperty(superimposePath, PROP_SUPERIMPOSE_REGISTER_PARENT);
+        final boolean overlayable = getJcrBooleanProperty(superimposePath, PROP_SUPERIMPOSE_OVERLAYABLE);
 
         // check if superimposing definition is valid
         boolean valid = true;
@@ -219,6 +219,34 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
         }
 
         return false;
+    }
+    
+    private String getJcrStringProperty(String pNodePath, String pPropertName) {
+        String absolutePropertyPath = pNodePath + "/" + pPropertName;
+        Session session = resolver.adaptTo(Session.class);
+        try {
+            if (!session.itemExists(absolutePropertyPath)) {
+                return null;
+            }
+            return session.getProperty(absolutePropertyPath).getString();
+        }
+        catch (RepositoryException ex) {
+            return null;
+        }
+    }
+
+    private boolean getJcrBooleanProperty(String pNodePath, String pPropertName) {
+        String absolutePropertyPath = pNodePath + "/" + pPropertName;
+        Session session = resolver.adaptTo(Session.class);
+        try {
+            if (!session.itemExists(absolutePropertyPath)) {
+                return false;
+            }
+            return session.getProperty(absolutePropertyPath).getBoolean();
+        }
+        catch (RepositoryException ex) {
+            return false;
+        }
     }
 
     private void registerProvider(String path) {
