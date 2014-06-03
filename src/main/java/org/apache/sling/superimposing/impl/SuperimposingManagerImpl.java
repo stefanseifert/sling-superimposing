@@ -74,21 +74,21 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
     static final String ENABLED_PROPERTY = "enabled";
     static final boolean ENABLED_DEFAULT = false;
     private boolean enabled;
-    
+
     @Property(label = "Find all Queries", description = "List of query expressions to find all existing superimposing registrations on service startup. "
             + "Query syntax is depending on underlying resource provdider implementation. Prepend the query with query syntax name separated by \"|\".",
             value={SuperimposingManagerImpl.FINDALLQUERIES_DEFAULT}, unbounded=PropertyUnbounded.ARRAY)
     static final String FINDALLQUERIES_PROPERTY = "findAllQueries";
     static final String FINDALLQUERIES_DEFAULT = "JCR-SQL2|SELECT * FROM [" + MIXIN_SUPERIMPOSE + "] WHERE ISDESCENDANTNODE('/content')";
     private String[] findAllQueries;
-    
+
     @Property(label = "Obervation paths", description = "List of paths that should be monitored for resource events to detect superimposing content nodes.",
             value={SuperimposingManagerImpl.OBSERVATION_PATHS_DEFAULT}, unbounded=PropertyUnbounded.ARRAY)
     static final String OBSERVATION_PATHS_PROPERTY = "obervationPaths";
     static final String OBSERVATION_PATHS_DEFAULT = "/content";
     private String[] obervationPaths;
     private EventListener[] observationEventListeners;
-    
+
     /**
      * Map for holding the superimposing mappings, with the superimpose path as key and the providers as values
      */
@@ -166,7 +166,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
      */
     private boolean registerProvider(Resource superimposingResource) {
         String superimposePath = superimposingResource.getPath();
-        
+
         // use JCR API to get properties from superimposing resource to make sure superimposing does not delivery values from source node
         final String sourcePath = getJcrStringProperty(superimposePath, PROP_SUPERIMPOSE_SOURCE_PATH);
         final boolean registerParent = getJcrBooleanProperty(superimposePath, PROP_SUPERIMPOSE_REGISTER_PARENT);
@@ -220,7 +220,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
 
         return false;
     }
-    
+
     private String getJcrStringProperty(String pNodePath, String pPropertName) {
         String absolutePropertyPath = pNodePath + "/" + pPropertName;
         Session session = resolver.adaptTo(Session.class);
@@ -267,7 +267,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
 
     @Activate
     protected synchronized void activate(final ComponentContext ctx) throws LoginException, RepositoryException {
-        
+
         // check enabled state
         @SuppressWarnings("unchecked")
         final Dictionary<String, Object> props = ctx.getProperties();
@@ -276,11 +276,11 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
         if (!isEnabled()) {
             return;
         }
-        
+
         // get "find all" queries
         this.findAllQueries = PropertiesUtil.toStringArray(props.get(FINDALLQUERIES_PROPERTY), new String[] { FINDALLQUERIES_DEFAULT });
         this.obervationPaths = PropertiesUtil.toStringArray(props.get(OBSERVATION_PATHS_PROPERTY), new String[] { OBSERVATION_PATHS_DEFAULT });
-        
+
         if (null == resolver) {
             bundleContext = ctx.getBundleContext();
             resolver = resolverFactory.getAdministrativeResourceResolver(null);
@@ -303,7 +303,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
                             true, // isDeep
                             null, // uuids
                             null, // node types
-                            true); // noLocal                    
+                            true); // noLocal
                 }
             }
 
@@ -404,7 +404,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
             log.error("Unexpected repository exception during event processing.");
         }
     }
-    
+
     /**
      * @return true if superimposing mode is enabled
      */
@@ -419,7 +419,7 @@ public class SuperimposingManagerImpl implements SuperimposingManager, EventList
         Map<String, SuperimposingResourceProvider> mapcopy = new HashMap<String, SuperimposingResourceProvider>(superimposingProviders);
         return Collections.unmodifiableMap(mapcopy);
     }
-    
+
     SuperimposingManagerImpl withResourceResolverFactory(ResourceResolverFactory resolverFactory) {
         this.resolverFactory = resolverFactory;
         return this;

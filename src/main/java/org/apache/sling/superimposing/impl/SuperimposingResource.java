@@ -26,7 +26,7 @@ import org.apache.sling.api.resource.ResourceResolver;
  * It delegates to an existing underlying resource but overrides the getPath() method to point to the superimposed path.
  */
 public class SuperimposingResource extends AbstractResource implements Resource {
-    
+
     private final Resource resource;
     private final ResourceMetadata resourceMetadata;
     private final String path;
@@ -37,13 +37,13 @@ public class SuperimposingResource extends AbstractResource implements Resource 
      */
     public SuperimposingResource(Resource mappedResource, String path) {
         this.resource = mappedResource;
-        
+
         // make a copy of resource metadata object
         this.resourceMetadata = new ResourceMetadata();
         if (mappedResource.getResourceMetadata()!=null) {
             this.resourceMetadata.putAll(mappedResource.getResourceMetadata());
         }
-        
+
         this.path = path;
     }
 

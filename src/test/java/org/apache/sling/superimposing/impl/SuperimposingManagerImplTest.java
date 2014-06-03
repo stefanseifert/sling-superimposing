@@ -70,7 +70,7 @@ public class SuperimposingManagerImplTest {
     @Mock
     private ComponentContext componentContext;
     @Mock
-    private BundleContext bundleContext;    
+    private BundleContext bundleContext;
     @Mock
     private ResourceResolverFactory resourceResolverFactory;
     @Mock
@@ -93,7 +93,7 @@ public class SuperimposingManagerImplTest {
         when(componentContextProperties.get(SuperimposingManagerImpl.OBSERVATION_PATHS_PROPERTY)).thenReturn(new String[] { OBSERVATION_PATH });
         when(resourceResolverFactory.getAdministrativeResourceResolver(any(Map.class))).thenReturn(resourceResolver);
         when(resourceResolver.adaptTo(Session.class)).thenReturn(session);
-        
+
         // collect a list of all service registrations to validate that they are all unregistered on shutdown
         when(bundleContext.registerService(anyString(), anyObject(), any(Dictionary.class))).thenAnswer(new Answer<ServiceRegistration>() {
             public ServiceRegistration answer(InvocationOnMock invocation) {
@@ -135,7 +135,7 @@ public class SuperimposingManagerImplTest {
                         ValueMap props = resource.adaptTo(ValueMap.class);
                         Object value = props.get(propertyName);
                         if (value==null) {
-                            throw new PathNotFoundException(); 
+                            throw new PathNotFoundException();
                         }
                         Property prop = mock(Property.class);
                         when(prop.getName()).thenReturn(propertyName);
@@ -148,7 +148,7 @@ public class SuperimposingManagerImplTest {
                         return prop;
                     }
                     else {
-                        throw new PathNotFoundException(); 
+                        throw new PathNotFoundException();
                     }
                 }
             });
@@ -163,7 +163,7 @@ public class SuperimposingManagerImplTest {
 
         underTest = new SuperimposingManagerImpl().withResourceResolverFactory(resourceResolverFactory);
         underTest.activate(componentContext);
-        
+
         if (underTest.isEnabled()) {
             // verify observation registration
             verify(session.getWorkspace().getObservationManager()).addEventListener(any(EventListener.class), anyInt(), eq(OBSERVATION_PATH), anyBoolean(), any(String[].class), any(String[].class), anyBoolean());
@@ -177,7 +177,7 @@ public class SuperimposingManagerImplTest {
     @After
     public void tearDown() throws RepositoryException {
         underTest.deactivate(componentContext);
-        
+
         if (underTest.isEnabled()) {
             // verify observation and resource resolver are terminated correctly
             verify(session.getWorkspace().getObservationManager()).removeEventListener(any(EventListener.class));
@@ -213,7 +213,7 @@ public class SuperimposingManagerImplTest {
     public void testDisabled() throws InterruptedException, LoginException, RepositoryException {
         // make sure that no exception is thrown when service is disabled on activate/deactivate
         initialize(false);
-        
+
         verifyZeroInteractions(resourceResolverFactory);
         verifyZeroInteractions(bundleContext);
     }
@@ -230,7 +230,7 @@ public class SuperimposingManagerImplTest {
             }
         });
         initialize(true);
-        
+
         // ensure the superimposed resource is detected and registered
         Map<String, SuperimposingResourceProvider> providers = underTest.getRegisteredProviders();
         assertEquals(1, providers.size());
@@ -243,7 +243,7 @@ public class SuperimposingManagerImplTest {
 
     private EventIterator prepareNodeCreateEvent(Resource pResource) throws RepositoryException {
         String resourcePath = pResource.getPath();
-        
+
         Event nodeEvent = mock(Event.class);
         when(nodeEvent.getType()).thenReturn(Event.NODE_ADDED);
         when(nodeEvent.getPath()).thenReturn(resourcePath);
@@ -251,7 +251,7 @@ public class SuperimposingManagerImplTest {
         Event propertyEvent = mock(Event.class);
         when(propertyEvent.getType()).thenReturn(Event.PROPERTY_ADDED);
         when(propertyEvent.getPath()).thenReturn(resourcePath + "/" + SuperimposingResourceProvider.PROP_SUPERIMPOSE_SOURCE_PATH);
-        
+
         EventIterator eventIterator = mock(EventIterator.class);
         when(eventIterator.hasNext()).thenReturn(true, true, false);
         when(eventIterator.nextEvent()).thenReturn(nodeEvent, propertyEvent);
@@ -260,11 +260,11 @@ public class SuperimposingManagerImplTest {
 
     private EventIterator prepareNodeChangeEvent(Resource pResource) throws RepositoryException {
         String resourcePath = pResource.getPath();
-        
+
         Event propertyEvent = mock(Event.class);
         when(propertyEvent.getType()).thenReturn(Event.PROPERTY_CHANGED);
         when(propertyEvent.getPath()).thenReturn(resourcePath + "/" + SuperimposingResourceProvider.PROP_SUPERIMPOSE_SOURCE_PATH);
-        
+
         EventIterator eventIterator = mock(EventIterator.class);
         when(eventIterator.hasNext()).thenReturn(true, false);
         when(eventIterator.nextEvent()).thenReturn(propertyEvent);
@@ -273,7 +273,7 @@ public class SuperimposingManagerImplTest {
 
     private EventIterator prepareNodeRemoveEvent(Resource pResource) throws RepositoryException {
         String resourcePath = pResource.getPath();
-        
+
         Event nodeEvent = mock(Event.class);
         when(nodeEvent.getType()).thenReturn(Event.NODE_REMOVED);
         when(nodeEvent.getPath()).thenReturn(resourcePath);
@@ -286,7 +286,7 @@ public class SuperimposingManagerImplTest {
 
     private EventIterator prepareNodeMoveEvent(Resource pResource, String pOldPath) throws RepositoryException {
         String resourcePath = pResource.getPath();
-        
+
         Event nodeRemoveEvent = mock(Event.class);
         when(nodeRemoveEvent.getType()).thenReturn(Event.NODE_REMOVED);
         when(nodeRemoveEvent.getPath()).thenReturn(pOldPath);
@@ -308,7 +308,7 @@ public class SuperimposingManagerImplTest {
         // simulate node create event
         Resource superimposedResource = prepareSuperimposingResource(SUPERIMPOSED_PATH, ORIGINAL_PATH, false, false);
         underTest.onEvent(prepareNodeCreateEvent(superimposedResource));
-        
+
         // ensure the superimposed resource is detected and registered
         Map<String, SuperimposingResourceProvider> providers = underTest.getRegisteredProviders();
         assertEquals(1, providers.size());
@@ -317,7 +317,7 @@ public class SuperimposingManagerImplTest {
         assertEquals(ORIGINAL_PATH, provider.getSourcePath());
         assertFalse(provider.isOverlayable());
         verify(bundleContext).registerService(anyString(), same(provider), any(Dictionary.class));
-        
+
         // simulate a change in the original path
         superimposedResource.adaptTo(ValueMap.class).put(PROP_SUPERIMPOSE_SOURCE_PATH, "/other/path");
         underTest.onEvent(prepareNodeChangeEvent(superimposedResource));
@@ -330,15 +330,15 @@ public class SuperimposingManagerImplTest {
         assertEquals("/other/path", provider2.getSourcePath());
         assertFalse(provider2.isOverlayable());
         verify(bundleContext).registerService(anyString(), same(provider2), any(Dictionary.class));
-        
+
         // simulate node removal
         underTest.onEvent(prepareNodeRemoveEvent(superimposedResource));
-        
+
         // ensure provider is removed
         providers = underTest.getRegisteredProviders();
-        assertEquals(0, providers.size());        
+        assertEquals(0, providers.size());
     }
-    
+
     @Test
     public void testSuperimposedResourceCreateMove() throws InterruptedException, LoginException, RepositoryException {
         when(componentContextProperties.get(SuperimposingManagerImpl.FINDALLQUERIES_PROPERTY)).thenReturn("syntax|query");
@@ -347,7 +347,7 @@ public class SuperimposingManagerImplTest {
         // simulate node create event
         final Resource superimposedResource = prepareSuperimposingResource(SUPERIMPOSED_PATH, ORIGINAL_PATH, false, false);
         underTest.onEvent(prepareNodeCreateEvent(superimposedResource));
-        
+
         // simulate a node move event
         String oldPath = superimposedResource.getPath();
         moveSuperimposedResource(superimposedResource, "/new/path");
@@ -360,7 +360,7 @@ public class SuperimposingManagerImplTest {
                 }).iterator();
             }
         });
-        
+
         underTest.onEvent(prepareNodeMoveEvent(superimposedResource, oldPath));
 
         // ensure the superimposed resource update is detected and a new provider instance is registered
@@ -370,7 +370,7 @@ public class SuperimposingManagerImplTest {
         assertEquals("/new/path", provider.getRootPath());
         assertEquals(ORIGINAL_PATH, provider.getSourcePath());
         assertFalse(provider.isOverlayable());
-        verify(bundleContext).registerService(anyString(), same(provider), any(Dictionary.class));        
+        verify(bundleContext).registerService(anyString(), same(provider), any(Dictionary.class));
     }
-    
+
 }

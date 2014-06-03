@@ -46,10 +46,10 @@ import org.osgi.framework.ServiceRegistration;
 @SuppressWarnings("javadoc")
 @RunWith(MockitoJUnitRunner.class)
 public class SuperimposingResourceProviderImplTest {
-    
+
     private SuperimposingResourceProviderImpl underTest;
     private SuperimposingResourceProviderImpl underTestOverlay;
-    
+
     @Mock
     private BundleContext bundleContext;
     @Mock
@@ -68,14 +68,14 @@ public class SuperimposingResourceProviderImplTest {
     private static final String ORIGINAL_PATH = "/root/path1";
     private static final String SUPERIMPOSED_PATH = "/root/path2";
     private static final String RESOURCE_TYPE = "/resourceType1";
-    
+
     @Before
     public void setUp() {
         // setup a superimposing resource provider without overlay
         underTest = new SuperimposingResourceProviderImpl(SUPERIMPOSED_PATH, ORIGINAL_PATH, false);
         when(bundleContext.registerService(anyString(), eq(underTest), any(Dictionary.class))).thenReturn(serviceRegistration);
         underTest.registerService(bundleContext);
-        
+
         // and one with overlay
         underTestOverlay = new SuperimposingResourceProviderImpl(SUPERIMPOSED_PATH, ORIGINAL_PATH, true);
         when(bundleContext.registerService(anyString(), eq(underTestOverlay), any(Dictionary.class))).thenReturn(serviceRegistrationOverlay);
@@ -90,7 +90,7 @@ public class SuperimposingResourceProviderImplTest {
             }
         });
     }
-    
+
     private void prepareOriginalResource(Resource mockResource, String path) {
         // prepare resource
         when(mockResource.getPath()).thenReturn(path);
@@ -100,7 +100,7 @@ public class SuperimposingResourceProviderImplTest {
         resourceMetadata.setResolutionPath(path);
         when(mockResource.getResourceMetadata()).thenReturn(resourceMetadata);
         when(mockResource.getResourceResolver()).thenReturn(resourceResolver);
-        
+
         // mount in resource tree
         when(resourceResolver.getResource(path)).thenReturn(mockResource);
     }
@@ -109,11 +109,11 @@ public class SuperimposingResourceProviderImplTest {
     public void tearDown() {
         underTest.unregisterService();
         verify(serviceRegistration).unregister();
-        
+
         underTestOverlay.unregisterService();
         verify(serviceRegistrationOverlay).unregister();
     }
-    
+
     @Test
     public void testGetter() {
         assertEquals(SUPERIMPOSED_PATH, underTest.getRootPath());
@@ -146,12 +146,12 @@ public class SuperimposingResourceProviderImplTest {
         assertTrue(resource instanceof SuperimposingResource);
         assertEquals(SUPERIMPOSED_PATH, resource.getPath());
     }
-    
+
     @Test
     public void testGetMappedRootResourceWithOverlay() throws RepositoryException {
         when(resourceResolver.adaptTo(Session.class)).thenReturn(session);
         when(session.itemExists(SUPERIMPOSED_PATH)).thenReturn(true);
-        
+
         Resource resource = underTest.getResource(resourceResolver, SUPERIMPOSED_PATH);
         assertTrue(resource instanceof SuperimposingResource);
         assertEquals(SUPERIMPOSED_PATH, resource.getPath());
@@ -161,7 +161,7 @@ public class SuperimposingResourceProviderImplTest {
         assertTrue(resource instanceof SuperimposingResource);
         assertEquals(SUPERIMPOSED_PATH, resource.getPath());
     }
-    
+
     @Test
     public void testGetMappedSubResource() {
         Resource resource = underTest.getResource(resourceResolver, SUPERIMPOSED_PATH + "/sub1");
@@ -172,7 +172,7 @@ public class SuperimposingResourceProviderImplTest {
         assertTrue(resource instanceof SuperimposingResource);
         assertEquals(SUPERIMPOSED_PATH + "/sub1", resource.getPath());
     }
-    
+
     @Test
     public void testGetMappedSubResourceWithOverlay() throws RepositoryException {
         when(resourceResolver.adaptTo(Session.class)).thenReturn(session);
@@ -186,7 +186,7 @@ public class SuperimposingResourceProviderImplTest {
         resource = underTestOverlay.getResource(resourceResolver, SUPERIMPOSED_PATH + "/sub1");
         assertNull(resource);
     }
-    
+
     @Test
     public void testGetMappedNonExistingResource() {
         Resource resource = underTest.getResource(resourceResolver, SUPERIMPOSED_PATH + "/sub2");
@@ -195,7 +195,7 @@ public class SuperimposingResourceProviderImplTest {
         resource = underTestOverlay.getResource(resourceResolver, SUPERIMPOSED_PATH + "/sub2");
         assertNull(resource);
     }
-    
+
     @Test
     public void testGetMappedNonExistingResourceWithOverlay() throws RepositoryException {
         when(resourceResolver.adaptTo(Session.class)).thenReturn(session);
@@ -207,7 +207,7 @@ public class SuperimposingResourceProviderImplTest {
         resource = underTestOverlay.getResource(resourceResolver, SUPERIMPOSED_PATH + "/sub2");
         assertNull(resource);
     }
-    
+
     @Test
     public void testGetMappedResourceRootInvalidPath() {
         Resource resource = underTest.getResource(resourceResolver, "/invalid/path");
@@ -216,7 +216,7 @@ public class SuperimposingResourceProviderImplTest {
         resource = underTestOverlay.getResource(resourceResolver, "/invalid/path");
         assertNull(resource);
     }
-    
+
     @Test
     public void testListChildren() {
         Resource resource = underTest.getResource(resourceResolver, SUPERIMPOSED_PATH);
@@ -230,7 +230,7 @@ public class SuperimposingResourceProviderImplTest {
         Resource resource = underTest.getResource(resourceResolver, SUPERIMPOSED_PATH);
         Iterator<Resource> iterator = underTest.listChildren(new ResourceWrapper(resource));
         assertTrue(iterator.hasNext());
-        assertEquals(SUPERIMPOSED_PATH + "/sub1", iterator.next().getPath());        
+        assertEquals(SUPERIMPOSED_PATH + "/sub1", iterator.next().getPath());
     }
 
     @Test

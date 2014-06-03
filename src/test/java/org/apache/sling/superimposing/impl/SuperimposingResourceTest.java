@@ -35,19 +35,19 @@ import org.mockito.runners.MockitoJUnitRunner;
 @SuppressWarnings("javadoc")
 @RunWith(MockitoJUnitRunner.class)
 public class SuperimposingResourceTest {
-    
+
     private Resource underTest;
-    
+
     @Mock
     private Resource originalResource;
     @Mock
     private ResourceResolver resourceResolver;
     private ResourceMetadata resourceMetadata = new ResourceMetadata();
-    
+
     private static final String ORIGINAL_PATH = "/root/path1";
     private static final String SUPERIMPOSED_PATH = "/root/path2";
     private static final String RESOURCE_TYPE = "/resourceType1";
-    
+
     @Before
     public void setUp() {
         when(originalResource.getPath()).thenReturn(ORIGINAL_PATH);
@@ -69,7 +69,7 @@ public class SuperimposingResourceTest {
     }
 
     /**
-     * Make sure adaptions are inherited from source resource, but can be overridden by superimposing resource instance. 
+     * Make sure adaptions are inherited from source resource, but can be overridden by superimposing resource instance.
      */
     @Test
     public void testAdaptTo() {
@@ -84,7 +84,7 @@ public class SuperimposingResourceTest {
         });
         when(this.originalResource.adaptTo(String.class)).thenReturn("myoriginalstring");
         when(this.originalResource.adaptTo(Integer.class)).thenReturn(12345);
-        
+
         assertEquals("mystring", underTest.adaptTo(String.class));
         assertEquals((Integer)12345, underTest.adaptTo(Integer.class));
         assertNull(underTest.adaptTo(Boolean.class));

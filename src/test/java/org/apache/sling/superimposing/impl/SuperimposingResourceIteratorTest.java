@@ -34,19 +34,19 @@ import org.mockito.runners.MockitoJUnitRunner;
 @SuppressWarnings("javadoc")
 @RunWith(MockitoJUnitRunner.class)
 public class SuperimposingResourceIteratorTest {
-    
+
     @Mock
     private Iterator<Resource> originalResourceIterator;
     @Mock
     private Resource originalResource1;
     @Mock
     private Resource originalResource2;
-    
+
     private SuperimposingResourceProviderImpl superimposingResourceProvider;
-    
+
     private static final String ORIGINAL_PATH = "/root/path1";
     private static final String SUPERIMPOSED_PATH = "/root/path2";
-    
+
     @Before
     public void setUp() {
         this.superimposingResourceProvider = new SuperimposingResourceProviderImpl(SUPERIMPOSED_PATH, ORIGINAL_PATH, false);

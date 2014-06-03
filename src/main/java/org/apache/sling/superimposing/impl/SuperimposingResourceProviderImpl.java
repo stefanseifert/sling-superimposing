@@ -90,7 +90,7 @@ public class SuperimposingResourceProviderImpl implements SuperimposingResourceP
      * {@inheritDoc}
      */
     public Iterator<Resource> listChildren(Resource resource) {
-        
+
         // unwrap resource if it is a wrapped resource
         final Resource currentResource;
         if (resource instanceof ResourceWrapper) {
@@ -99,8 +99,8 @@ public class SuperimposingResourceProviderImpl implements SuperimposingResourceP
         else {
             currentResource = resource;
         }
-        
-        // delegate resource listing to resource resolver 
+
+        // delegate resource listing to resource resolver
         if (currentResource instanceof SuperimposingResource) {
             final SuperimposingResource res = (SuperimposingResource) currentResource;
             final ResourceResolver resolver = res.getResource().getResourceResolver();
@@ -150,7 +150,7 @@ public class SuperimposingResourceProviderImpl implements SuperimposingResourceP
         }
         return null;
     }
-    
+
     static boolean hasOverlayResource(ResourceResolver resolver, String path) {
         // check for overlay resource by checking directly in underlying JCR
         final Session session = resolver.adaptTo(Session.class);
@@ -220,7 +220,7 @@ public class SuperimposingResourceProviderImpl implements SuperimposingResourceP
             log.info("Unregistered {}", this);
         }
     }
-    
+
     /**
      * @return Root path (source path)
      */

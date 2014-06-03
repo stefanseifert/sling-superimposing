@@ -34,7 +34,7 @@
         All cahnges from the master tree are reflected to the mirrored tree.
         It is possible to add or overlay resources in the mirrord tree.
     </description>
-    
+
     <properties>
       <sling.url>http://localhost:8080</sling.url>
       <sling.user>admin</sling.user>
@@ -104,11 +104,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-      		  <groupId>org.apache.sling</groupId>
-      		  <artifactId>org.apache.sling.settings</artifactId>
-      		  <version>1.0.0</version>
-      		  <scope>provided</scope>
-    	  </dependency> 
+                <groupId>org.apache.sling</groupId>
+                <artifactId>org.apache.sling.settings</artifactId>
+                <version>1.0.0</version>
+                <scope>provided</scope>
+          </dependency>
 
         <dependency>
             <groupId>commons-lang</groupId>

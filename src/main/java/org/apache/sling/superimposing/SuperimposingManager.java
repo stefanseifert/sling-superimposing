@@ -32,7 +32,7 @@ public interface SuperimposingManager {
      * @return true if superimposing mode is enabled
      */
     boolean isEnabled();
-        
+
     /**
      * @return Immutable map with all superimposing resource providers currently registered
      */
