@@ -51,12 +51,12 @@ In the Felix console you can configure the creation of Superimposing Resource Pr
 
 * The superimposing resource provider depends on an underlying JCR repository. It currently does only work with JCR and supports mirroring or overlaying JCR nodes.
 * The Superimposing Resource Provider provides an API in the package org.apache.sling.superimposing. For the basic superimposing content features you do not need this API. It is a read-only API which allows to query which superimposing resource providers are currently active with which configuration. The API is useful if you want to react on JCR events on the source tree and actions on the mirrored trees as well (e.g. for sending invalidation events to clean an external cache).
-* If your are using AEM you should enable the superimposing resource provider **only on publish instances**. Use it on author instances on own risk! It can produce unpredictable within the author interface which is not prepared to handle mirrored content. You can loose data e.g. if you remove a superimposed content in the author client node the original node and its subtree gets deleted in the JCR.
+* If your are using AEM you should enable the superimposing resource provider **only on publish instances**. Use it on author instances on your own risk! It can produce unpredictable results within the author interface which is not prepared to handle mirrored content. You can loose data e.g. if you try to remove a superimposed content node in the author the original node and its subtree gets deleted in the JCR as well, because the AEM author used JCR and not the Sling CRUD API to do the delete operation.
 
 
 ### Comparison with Sling Resource Merger
 
-In Sling Contrib a ["Apache Sling Resource Merger"](https://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/resourcemerger) bundle is provided. Although both Sling Resource Merger and the Superimposing Resource Provider take care of mirroring and sharing resources they solve quite different problems and have different usecases:
+In Sling Contrib a ["Apache Sling Resource Merger"](https://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/resourcemerger) bundle is provided. Although both Sling Resource Merger and the Superimposing Resource Provider take care of mirroring and merging resources they solve quite different problems and have different usecases:
 
 * Sling Resource Merger is primary about Merging resources of content structures from /apps and /libs, e.g. dialog definitions of an AEM application. It mounts the merged resources at a new path (e.g. /mnt/overlay) which can be included in the script resolution.
 * The Superimposing Content Resource Provider is targeted at content. Think of a scenario with one master site that is rolled out to hundreds of slave sites with mostly identical contents but some site-specific overrides and customizations. This is not possible with Sling Resource Merger and vice versa.
