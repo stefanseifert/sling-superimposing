@@ -43,7 +43,6 @@ import org.mockito.stubbing.Answer;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 
-@SuppressWarnings("javadoc")
 @RunWith(MockitoJUnitRunner.class)
 public class SuperimposingResourceProviderImplTest {
 
