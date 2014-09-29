@@ -1,6 +1,12 @@
 Sling Superimposing Resource Provider
 ===================
 
+### DEPRECATED
+
+This GitHub Repository is **deprecated** because the code is now maintained within the Sling Project:<br/>
+https://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/superimposing
+
+
 ### About
 
 The Superimposing Resource Provider is an extension for the [Apache Sling](http://sling.apache.org/) framework. It implements the [ResourceProvider](http://sling.apache.org/apidocs/sling6/org/apache/sling/api/resource/ResourceProvider.html) interface.
