@@ -3,7 +3,7 @@ Sling Superimposing Resource Provider
 
 ### DEPRECATED
 
-This GitHub Repository is **deprecated** because the code is now maintained within the Sling Project:<br/>
+This GitHub Repository is **deprecated** because the code is now maintained within the Apache Sling Project:<br/>
 https://svn.apache.org/repos/asf/sling/trunk/contrib/extensions/superimposing
 
 
